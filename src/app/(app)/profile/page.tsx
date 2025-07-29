@@ -19,7 +19,7 @@ export default function ProfilePage() {
           <Card className="shadow-md text-center">
             <CardContent className="pt-6">
               <Avatar className="h-24 w-24 mx-auto mb-4">
-                <AvatarImage src="https://placehold.co/128x128" data-ai-hint="user avatar" />
+                <AvatarImage src="https://placehold.co/128x128" data-ai-hint="woman hijab" />
                 <AvatarFallback>U</AvatarFallback>
               </Avatar>
               <h2 className="text-xl font-semibold">Alex Doe</h2>

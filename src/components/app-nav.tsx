@@ -42,7 +42,7 @@ export default function AppNav() {
                 </Button>
                 <Link href="/profile">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src="https://placehold.co/100x100" alt="User" />
+                    <AvatarImage src="https://placehold.co/100x100" data-ai-hint="woman hijab" alt="User" />
                     <AvatarFallback>U</AvatarFallback>
                   </Avatar>
                 </Link>

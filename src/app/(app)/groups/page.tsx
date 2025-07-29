@@ -32,7 +32,7 @@ export default function GroupsPage() {
               {groups.map((group) => (
                 <div key={group.name} className="flex items-center space-x-4">
                   <Avatar>
-                    <AvatarImage src={group.image} data-ai-hint="group avatar" />
+                    <AvatarImage src={group.image} data-ai-hint="study group" />
                     <AvatarFallback>{group.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
@@ -59,7 +59,7 @@ export default function GroupsPage() {
               {chatMessages.map((msg, index) => (
                 <div key={index} className={`flex items-start gap-3 ${msg.user === 'You' ? 'flex-row-reverse' : ''}`}>
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={msg.avatar} data-ai-hint="user avatar" />
+                    <AvatarImage src={msg.avatar} data-ai-hint="woman hijab" />
                     <AvatarFallback>{msg.user.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className={`rounded-lg p-3 max-w-xs ${msg.user === 'You' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
