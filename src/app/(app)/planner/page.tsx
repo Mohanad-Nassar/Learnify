@@ -108,7 +108,7 @@ export default function PlannerPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 mx-4 md:mx-8">
        <div>
           <h1 className="text-3xl font-bold font-headline">Study Planner</h1>
           <p className="text-muted-foreground">Plan your study sessions and stay organized.</p>
@@ -129,18 +129,15 @@ export default function PlannerPage() {
                                   setSelectedDate(newDate);
                                 }}
                                 className={cn(
-                                  "text-center font-medium",
-                                  activeDayIndex === index ? 'text-primary' : 'text-muted-foreground'
+                                  "text-center font-medium w-full py-2",
+                                  activeDayIndex === index ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'
                                 )}
                             >
                                 <p>{day}</p>
                             </button>
                         ))}
                     </div>
-                     <div className="flex items-center gap-2 mt-4">
-                        <Button onClick={() => handleOpenDialog(null)} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                           <Plus className="mr-2 h-4 w-4" /> Add Session
-                        </Button>
+                     <div className="flex items-center justify-end gap-2 mt-4">
                         <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                             <PopoverTrigger asChild>
                                 <Button variant="outline" size="icon">
@@ -161,8 +158,11 @@ export default function PlannerPage() {
             </Card>
 
            <Card className="shadow-md">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Study Sessions for {selectedDate ? format(selectedDate, 'MMMM dd') : ''}</CardTitle>
+                 <Button onClick={() => handleOpenDialog(null)} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Plus className="mr-2 h-4 w-4" /> Add Session
+                </Button>
               </CardHeader>
                 <CardContent className="p-6">
                       <ul className="space-y-4">
