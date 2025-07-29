@@ -12,7 +12,7 @@ const groups = [
 
 const chatMessages = [
   { user: "Alice", message: "Hey everyone, ready for the test on Friday?", avatar: "https://placehold.co/32x32" },
-  { user: "You", message: "I will be! Just need to review chapter 5.", avatar: "https://placehold.co/32x32" },
+  { user: "You", message: "I will be! Just need to review chapter 5.", avatar: "/profile.png" },
   { user: "Bob", message: "Can we do a review session tomorrow?", avatar: "https://placehold.co/32x32" },
 ];
 
@@ -59,7 +59,7 @@ export default function GroupsPage() {
               {chatMessages.map((msg, index) => (
                 <div key={index} className={`flex items-start gap-3 ${msg.user === 'You' ? 'flex-row-reverse' : ''}`}>
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={msg.avatar} data-ai-hint="palestinian girl" />
+                    <AvatarImage src={msg.avatar} data-ai-hint={msg.user === 'You' ? 'palestinian girl' : 'woman hijab'} />
                     <AvatarFallback>{msg.user.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className={`rounded-lg p-3 max-w-xs ${msg.user === 'You' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
