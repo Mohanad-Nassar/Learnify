@@ -3,81 +3,51 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Leaf, LogOut } from 'lucide-react';
-import { mainNavLinks, userNavLink, type NavLink } from '@/lib/nav-links';
+import { Bell, Leaf, LogOut } from 'lucide-react';
+import { allNavLinks, type NavLink } from '@/lib/nav-links';
 import { cn } from '@/lib/utils';
-import {
-  SidebarHeader,
-  SidebarContent,
-  SidebarFooter,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarSeparator,
-} from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from './ui/button';
 
-const NavMenu = ({ links, title }: { links: NavLink[], title: string }) => {
+export default function AppNav() {
   const pathname = usePathname();
 
   return (
-    <SidebarMenu>
-      {links.map((link) => (
-        <SidebarMenuItem key={link.href}>
-          <SidebarMenuButton
-            asChild
-            isActive={pathname === link.href}
-            tooltip={{ children: link.label }}
-          >
-            <Link href={link.href}>
-              <link.icon />
-              <span>{link.label}</span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      ))}
-    </SidebarMenu>
-  );
-};
+    <header className="sticky top-0 z-40 w-full border-b border-primary bg-card">
+        <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
+            <div className="flex items-center gap-6">
+                <Link href="/dashboard" className="flex items-center space-x-2">
+                    <Leaf className="h-6 w-6 text-primary" />
+                    <span className="inline-block font-bold text-lg">Learnify</span>
+                </Link>
+                <nav className="hidden gap-6 md:flex">
+                    {allNavLinks.map((link) => (
+                    <Link
+                        key={link.href}
+                        href={link.href}
+                        className={cn(
+                        "text-sm font-medium transition-colors hover:text-primary",
+                        pathname === link.href ? "text-primary" : "text-muted-foreground"
+                        )}
+                    >
+                        {link.label}
+                    </Link>
+                    ))}
+                </nav>
+            </div>
 
-export default function AppNav() {
-  return (
-    <>
-      <SidebarHeader>
-        <div className="flex items-center gap-2 p-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Leaf className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-lg">Learnify</span>
+            <div className="flex flex-1 items-center justify-end space-x-4">
+                <Button variant="ghost" size="icon">
+                    <Bell className="h-5 w-5" />
+                </Button>
+                <Link href="/profile">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src="https://placehold.co/100x100" alt="User" />
+                    <AvatarFallback>U</AvatarFallback>
+                  </Avatar>
+                </Link>
+            </div>
         </div>
-      </SidebarHeader>
-
-      <SidebarContent className="p-2">
-        <NavMenu links={mainNavLinks} title="Main Menu" />
-      </SidebarContent>
-
-      <SidebarFooter className="p-2">
-        <SidebarSeparator />
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip={{ children: 'Profile' }}>
-              <Link href={userNavLink.href}>
-                <Avatar className="h-7 w-7">
-                  <AvatarImage src="https://placehold.co/100x100" alt="User" />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-                <span className="truncate">User Name</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-             <SidebarMenuButton tooltip={{ children: 'Logout' }}>
-                <LogOut />
-                <span>Logout</span>
-              </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </>
+    </header>
   );
 }
