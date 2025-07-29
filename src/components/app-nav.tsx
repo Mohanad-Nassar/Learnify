@@ -22,22 +22,21 @@ export default function AppNav() {
                 </Link>
             </div>
 
-            <nav className="hidden flex-1 justify-center gap-6 md:flex">
-                {allNavLinks.map((link) => (
-                <Link
-                    key={link.href}
-                    href={link.href}
-                    className={cn(
-                    "text-sm font-medium transition-colors hover:text-primary",
-                    pathname === link.href ? "text-primary" : "text-muted-foreground"
-                    )}
-                >
-                    {link.label}
-                </Link>
-                ))}
-            </nav>
-
             <div className="flex flex-1 items-center justify-end space-x-4">
+                 <nav className="hidden gap-6 md:flex">
+                    {allNavLinks.map((link) => (
+                    <Link
+                        key={link.href}
+                        href={link.href}
+                        className={cn(
+                        "text-sm font-medium transition-colors hover:text-primary",
+                        pathname === link.href ? "text-primary" : "text-muted-foreground"
+                        )}
+                    >
+                        {link.label}
+                    </Link>
+                    ))}
+                </nav>
                 <Button variant="ghost" size="icon">
                     <Bell className="h-5 w-5" />
                 </Button>
