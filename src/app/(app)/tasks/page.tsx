@@ -94,41 +94,77 @@ const initialTasks: Task[] = [
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
-  const [newTitle, setNewTitle] = useState("");
-  const [newStatus, setNewStatus] = useState<Task["status"]>("Not Started");
-  const [newPriority, setNewPriority] = useState<Task["priority"]>("Medium");
-  const [newDueDate, setNewDueDate] = useState("");
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-  const handleAddTask = () => {
-    if (!newTitle || !newDueDate) {
-      // Basic validation
+  const [taskDetails, setTaskDetails] = useState({
+    title: "",
+    status: "Not Started" as Task["status"],
+    priority: "Medium" as Task["priority"],
+    dueDate: "",
+  });
+
+  const resetForm = () => {
+    setTaskDetails({
+      title: "",
+      status: "Not Started",
+      priority: "Medium",
+      dueDate: "",
+    });
+    setEditingTask(null);
+  };
+
+  const handleOpenDialog = (task: Task | null) => {
+    if (task) {
+      setEditingTask(task);
+      setTaskDetails({
+        title: task.title,
+        status: task.status,
+        priority: task.priority,
+        dueDate: task.dueDate,
+      });
+    } else {
+      resetForm();
+    }
+    setIsDialogOpen(true);
+  };
+  
+  const handleCloseDialog = () => {
+    resetForm();
+    setIsDialogOpen(false);
+  }
+
+  const handleSaveTask = () => {
+    if (!taskDetails.title || !taskDetails.dueDate) {
       alert("Please fill in all fields.");
       return;
     }
-    const newTask: Task = {
-      id: Math.max(...tasks.map(t => t.id), 0) + 1,
-      title: newTitle,
-      status: newStatus,
-      priority: newPriority,
-      dueDate: newDueDate,
-    };
-    setTasks([...tasks, newTask]);
-    resetForm();
-    setIsDialogOpen(false);
+
+    if (editingTask) {
+      // Update existing task
+      setTasks(
+        tasks.map((task) =>
+          task.id === editingTask.id ? { ...task, ...taskDetails } : task
+        )
+      );
+    } else {
+      // Add new task
+      const newTask: Task = {
+        id: Math.max(...tasks.map((t) => t.id), 0) + 1,
+        ...taskDetails,
+      };
+      setTasks([...tasks, newTask]);
+    }
+
+    handleCloseDialog();
   };
   
   const handleDeleteTask = (taskId: number) => {
     setTasks(tasks.filter(task => task.id !== taskId));
   };
-
-  const resetForm = () => {
-    setNewTitle("");
-    setNewStatus("Not Started");
-    setNewPriority("Medium");
-    setNewDueDate("");
-  }
-
+  
+  const handleInputChange = (field: keyof typeof taskDetails, value: string) => {
+    setTaskDetails(prev => ({ ...prev, [field]: value }));
+  };
 
   return (
     <div className="space-y-8">
@@ -137,17 +173,17 @@ export default function TasksPage() {
           <h1 className="text-3xl font-bold font-headline">Tasks</h1>
           <p className="text-muted-foreground">Manage and track your tasks here.</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
-              <PlusCircle className="mr-2 h-4 w-4" /> Create Task
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+        <Button onClick={() => handleOpenDialog(null)} className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <PlusCircle className="mr-2 h-4 w-4" /> Create Task
+        </Button>
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]" onInteractOutside={handleCloseDialog}>
             <DialogHeader>
-              <DialogTitle>Create New Task</DialogTitle>
+              <DialogTitle>{editingTask ? "Edit Task" : "Create New Task"}</DialogTitle>
               <DialogDescription>
-                Fill in the details below to add a new task to your list.
+                {editingTask ? "Update the details of your task." : "Fill in the details below to add a new task to your list."}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -155,13 +191,13 @@ export default function TasksPage() {
                 <Label htmlFor="title" className="text-right">
                   Title
                 </Label>
-                <Input id="title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="e.g. Finish Math assignment" className="col-span-3" />
+                <Input id="title" value={taskDetails.title} onChange={(e) => handleInputChange('title', e.target.value)} placeholder="e.g. Finish Math assignment" className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="status" className="text-right">
                   Status
                 </Label>
-                <Select value={newStatus} onValueChange={(value: Task["status"]) => setNewStatus(value)}>
+                <Select value={taskDetails.status} onValueChange={(value: Task["status"]) => handleInputChange('status', value)}>
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
@@ -176,7 +212,7 @@ export default function TasksPage() {
                 <Label htmlFor="priority" className="text-right">
                   Priority
                 </Label>
-                <Select value={newPriority} onValueChange={(value: Task["priority"]) => setNewPriority(value)}>
+                <Select value={taskDetails.priority} onValueChange={(value: Task["priority"]) => handleInputChange('priority', value)}>
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select priority" />
                   </SelectTrigger>
@@ -191,16 +227,15 @@ export default function TasksPage() {
                 <Label htmlFor="dueDate" className="text-right">
                   Due Date
                 </Label>
-                <Input id="dueDate" type="date" value={newDueDate} onChange={(e) => setNewDueDate(e.target.value)} className="col-span-3" />
+                <Input id="dueDate" type="date" value={taskDetails.dueDate} onChange={(e) => handleInputChange('dueDate', e.target.value)} className="col-span-3" />
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={() => setIsDialogOpen(false)} variant="outline">Cancel</Button>
-              <Button onClick={handleAddTask} className="bg-primary hover:bg-primary/90 text-primary-foreground">Save Task</Button>
+              <Button onClick={handleCloseDialog} variant="outline">Cancel</Button>
+              <Button onClick={handleSaveTask} className="bg-primary hover:bg-primary/90 text-primary-foreground">Save Task</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
 
       <Card className="shadow-md">
         <CardHeader>
@@ -238,7 +273,7 @@ export default function TasksPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => alert('Editing is not implemented yet!')}>
+                        <DropdownMenuItem onClick={() => handleOpenDialog(task)}>
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDeleteTask(task.id)}>
