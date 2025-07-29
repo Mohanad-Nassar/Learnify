@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState } from "react";
@@ -7,25 +6,13 @@ import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
 import {
@@ -33,6 +20,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -43,71 +33,82 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { MoreHorizontal, PlusCircle } from "lucide-react"
+import { MoreHorizontal, PlusCircle, Trash2, Pencil, ChevronDown } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { format, isToday, isThisWeek, addDays, parseISO } from 'date-fns';
+import { cn } from "@/lib/utils";
+
 
 type Task = {
   id: number;
   title: string;
+  subject: string;
   status: "Not Started" | "In Progress" | "Done";
   dueDate: string;
-  priority: "Low" | "Medium" | "High";
+  isCompleted: boolean;
 };
 
 const initialTasks: Task[] = [
   {
     id: 1,
-    title: "Complete Project Proposal",
+    title: "Complete Math Assignment",
+    subject: "Math",
     status: "In Progress",
-    dueDate: "2024-08-15",
-    priority: "High",
+    dueDate: new Date().toISOString(),
+    isCompleted: false,
   },
   {
     id: 2,
-    title: "Study for History Midterm",
+    title: "Write History Essay",
+    subject: "History",
     status: "Not Started",
-    dueDate: "2024-08-20",
-    priority: "High",
+    dueDate: addDays(new Date(), 1).toISOString(),
+    isCompleted: false,
   },
   {
     id: 3,
-    title: "Read 'The Great Gatsby' Chapter 1-3",
+    title: "Read Chapter 5 of Biology",
+    subject: "Biology",
     status: "Done",
-    dueDate: "2024-08-10",
-    priority: "Medium",
+    dueDate: addDays(new Date(), 3).toISOString(),
+    isCompleted: true,
   },
   {
     id: 4,
-    title: "Practice Algebra Problems",
+    title: "Prepare Presentation for Chemistry",
+    subject: "Chemistry",
     status: "In Progress",
-    dueDate: "2024-08-12",
-    priority: "Medium",
-  },
-  {
-    id: 5,
-    title: "Outline Biology Lab Report",
-    status: "Not Started",
-    dueDate: "2024-08-18",
-    priority: "Low",
+    dueDate: addDays(new Date(), 5).toISOString(),
+    isCompleted: false,
   },
 ];
+
+const formatDueDate = (dateString: string) => {
+    const date = parseISO(dateString);
+    if (isToday(date)) return 'Due Today';
+    if (isThisWeek(date, { weekStartsOn: 1 })) return `Due ${format(date, 'eeee')}`;
+    return `Due ${format(date, 'MMM dd')}`;
+}
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [filter, setFilter] = useState('All');
+  const [subjectFilter, setSubjectFilter] = useState('All');
+
+  const subjects = ['All', ...Array.from(new Set(initialTasks.map(t => t.subject)))];
 
   const [taskDetails, setTaskDetails] = useState({
     title: "",
-    status: "Not Started" as Task["status"],
-    priority: "Medium" as Task["priority"],
+    subject: "",
     dueDate: "",
   });
 
   const resetForm = () => {
     setTaskDetails({
       title: "",
-      status: "Not Started",
-      priority: "Medium",
+      subject: "",
       dueDate: "",
     });
     setEditingTask(null);
@@ -118,9 +119,8 @@ export default function TasksPage() {
       setEditingTask(task);
       setTaskDetails({
         title: task.title,
-        status: task.status,
-        priority: task.priority,
-        dueDate: task.dueDate,
+        subject: task.subject,
+        dueDate: format(parseISO(task.dueDate), 'yyyy-MM-dd'),
       });
     } else {
       resetForm();
@@ -140,17 +140,19 @@ export default function TasksPage() {
     }
 
     if (editingTask) {
-      // Update existing task
       setTasks(
         tasks.map((task) =>
-          task.id === editingTask.id ? { ...task, ...taskDetails } : task
+          task.id === editingTask.id ? { ...task, title: taskDetails.title, subject: taskDetails.subject, dueDate: new Date(taskDetails.dueDate).toISOString() } : task
         )
       );
     } else {
-      // Add new task
       const newTask: Task = {
         id: Math.max(...tasks.map((t) => t.id), 0) + 1,
-        ...taskDetails,
+        title: taskDetails.title,
+        subject: taskDetails.subject,
+        dueDate: new Date(taskDetails.dueDate).toISOString(),
+        status: "Not Started",
+        isCompleted: false,
       };
       setTasks([...tasks, newTask]);
     }
@@ -162,132 +164,120 @@ export default function TasksPage() {
     setTasks(tasks.filter(task => task.id !== taskId));
   };
   
+  const handleToggleComplete = (taskId: number) => {
+    setTasks(tasks.map(task => 
+      task.id === taskId ? { ...task, isCompleted: !task.isCompleted, status: !task.isCompleted ? "Done" : "Not Started" } : task
+    ));
+  }
+
   const handleInputChange = (field: keyof typeof taskDetails, value: string) => {
     setTaskDetails(prev => ({ ...prev, [field]: value }));
   };
 
+  const filteredTasks = tasks.filter(task => {
+    const date = parseISO(task.dueDate);
+    const filterCondition = filter === 'All' || 
+                            (filter === 'Today' && isToday(date)) ||
+                            (filter === 'This Week' && isThisWeek(date, { weekStartsOn: 1 }));
+    const subjectCondition = subjectFilter === 'All' || task.subject === subjectFilter;
+    return filterCondition && subjectCondition;
+  });
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-4 md:p-8 bg-background text-foreground">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold font-headline">Tasks</h1>
-          <p className="text-muted-foreground">Manage and track your tasks here.</p>
-        </div>
-        <Button onClick={() => handleOpenDialog(null)} className="bg-accent text-accent-foreground hover:bg-accent/90">
-            <PlusCircle className="mr-2 h-4 w-4" /> Create Task
+        <h1 className="text-3xl font-bold">Tasks</h1>
+        <Button onClick={() => handleOpenDialog(null)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+             Add Task
         </Button>
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Button variant={filter === 'All' ? 'secondary' : 'ghost'} onClick={() => setFilter('All')}>All</Button>
+        <Button variant={filter === 'Today' ? 'secondary' : 'ghost'} onClick={() => setFilter('Today')}>Today</Button>
+        <Button variant={filter === 'This Week' ? 'secondary' : 'ghost'} onClick={() => setFilter('This Week')}>This Week</Button>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost">
+                    Subject <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <DropdownMenuLabel>Filter by Subject</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {subjects.map(subject => (
+                     <DropdownMenuCheckboxItem
+                        key={subject}
+                        checked={subjectFilter === subject}
+                        onCheckedChange={() => setSubjectFilter(subject)}
+                     >
+                        {subject}
+                    </DropdownMenuCheckboxItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="sm:max-w-[425px]" onInteractOutside={handleCloseDialog}>
             <DialogHeader>
-              <DialogTitle>{editingTask ? "Edit Task" : "Create New Task"}</DialogTitle>
-              <DialogDescription>
-                {editingTask ? "Update the details of your task." : "Fill in the details below to add a new task to your list."}
-              </DialogDescription>
+              <DialogTitle>{editingTask ? "Edit Task" : "Add Task"}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="title" className="text-right">
-                  Title
-                </Label>
-                <Input id="title" value={taskDetails.title} onChange={(e) => handleInputChange('title', e.target.value)} placeholder="e.g. Finish Math assignment" className="col-span-3" />
+              <div className="space-y-2">
+                <Label htmlFor="title">Title</Label>
+                <Input id="title" value={taskDetails.title} onChange={(e) => handleInputChange('title', e.target.value)} placeholder="e.g. Finish Math assignment" />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="status" className="text-right">
-                  Status
-                </Label>
-                <Select value={taskDetails.status} onValueChange={(value: Task["status"]) => handleInputChange('status', value)}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Not Started">Not Started</SelectItem>
-                    <SelectItem value="In Progress">In Progress</SelectItem>
-                    <SelectItem value="Done">Done</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2">
+                <Label htmlFor="subject">Subject</Label>
+                <Input id="subject" value={taskDetails.subject} onChange={(e) => handleInputChange('subject', e.target.value)} placeholder="e.g. Math" />
               </div>
-               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="priority" className="text-right">
-                  Priority
-                </Label>
-                <Select value={taskDetails.priority} onValueChange={(value: Task["priority"]) => handleInputChange('priority', value)}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Low">Low</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="High">High</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="dueDate" className="text-right">
-                  Due Date
-                </Label>
-                <Input id="dueDate" type="date" value={taskDetails.dueDate} onChange={(e) => handleInputChange('dueDate', e.target.value)} className="col-span-3" />
+              <div className="space-y-2">
+                <Label htmlFor="dueDate">Due Date</Label>
+                <Input id="dueDate" type="date" value={taskDetails.dueDate} onChange={(e) => handleInputChange('dueDate', e.target.value)} />
               </div>
             </div>
             <DialogFooter>
               <Button onClick={handleCloseDialog} variant="outline">Cancel</Button>
-              <Button onClick={handleSaveTask} className="bg-primary hover:bg-primary/90 text-primary-foreground">Save Task</Button>
+              <Button onClick={handleSaveTask} className="bg-primary hover:bg-primary/90 text-primary-foreground">Save</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle>Task List</CardTitle>
-          <CardDescription>An overview of all your current tasks.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Task</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tasks.map((task) => (
-                <TableRow key={task.id}>
-                  <TableCell className="font-medium">{task.title}</TableCell>
-                  <TableCell>
-                    <Badge variant={task.status === 'Done' ? 'default' : task.status === 'In Progress' ? 'secondary' : 'outline'} className={task.status === 'Done' ? 'bg-primary/20 text-primary-foreground' : ''}>{task.status}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={task.priority === 'High' ? 'destructive' : task.priority === 'Medium' ? 'outline' : 'secondary'} className={task.priority === 'High' ? 'bg-destructive/80' : ''}>{task.priority}</Badge>
-                  </TableCell>
-                  <TableCell>{task.dueDate}</TableCell>
-                   <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleOpenDialog(task)}>
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDeleteTask(task.id)}>
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        <div>
+            <h2 className="text-xl font-semibold mt-6 mb-4">Task List</h2>
+            <Card>
+                <CardContent className="p-0">
+                    <div className="space-y-4">
+                        {filteredTasks.map((task) => (
+                            <div key={task.id} className="flex items-center p-4 border-b last:border-b-0">
+                                <Checkbox
+                                    id={`task-${task.id}`}
+                                    checked={task.isCompleted}
+                                    onCheckedChange={() => handleToggleComplete(task.id)}
+                                    className="mr-4"
+                                />
+                                <div className="flex-grow">
+                                    <p className={cn("font-medium", task.isCompleted && "line-through text-muted-foreground")}>{task.title}</p>
+                                    <p className={cn("text-sm text-muted-foreground", task.isCompleted && "line-through")}>
+                                        {formatDueDate(task.dueDate)}
+                                    </p>
+                                    <p className={cn("text-sm text-muted-foreground", task.isCompleted && "line-through")}>{task.subject}</p>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(task)}>
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteTask(task.id)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
     </div>
   )
 }
