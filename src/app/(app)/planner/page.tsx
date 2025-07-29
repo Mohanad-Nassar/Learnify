@@ -29,12 +29,12 @@ export default function PlannerPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
            <Card className="shadow-md">
-              <CardContent className="p-0">
+              <CardContent className="p-0 flex justify-center">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
                   onSelect={setSelectedDate}
-                  className="p-3 w-full"
+                  className="p-3"
                   classNames={{
                       months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
                       month: "space-y-4 w-full",
