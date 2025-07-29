@@ -93,7 +93,7 @@ const formatDueDate = (dateString: string) => {
 
 const TaskItem = ({ task, onToggleComplete, onEdit, onDelete }: { task: Task; onToggleComplete: (id: number) => void; onEdit: (task: Task) => void; onDelete: (id: number) => void; }) => {
   return (
-    <div className="flex items-center p-4 border-b last:border-b-0">
+    <div className="flex items-center p-4 border-b last:border-b-0 hover:bg-muted/50 transition-colors">
         <Checkbox
             id={`task-${task.id}`}
             checked={task.isCompleted}
