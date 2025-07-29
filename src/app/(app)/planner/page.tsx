@@ -3,22 +3,106 @@
 
 import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Plus } from "lucide-react";
+import { format, parseISO, startOfDay, getDay } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
-const studySessions = [
-  { id: 1, time: "10:00 AM - 11:00 AM", subject: "Math" },
-  { id: 2, time: "11:00 AM - 12:00 PM", subject: "Science" },
-  { id: 3, time: "12:00 PM - 1:00 PM", subject: "History" },
-]
+type StudySession = {
+  id: number;
+  time: string;
+  subject: string;
+  date: string; // ISO string
+};
 
-const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const initialSessions: StudySession[] = [
+  { id: 1, time: "10:00 AM - 11:00 AM", subject: "Math", date: new Date().toISOString() },
+  { id: 2, time: "02:00 PM - 03:00 PM", subject: "History", date: new Date().toISOString() },
+];
+
+const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function PlannerPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [activeDay, setActiveDay] = useState("Mon");
+  const [sessions, setSessions] = useState<StudySession[]>(initialSessions);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<StudySession | null>(null);
+  const [sessionDetails, setSessionDetails] = useState({
+    subject: "",
+    time: "",
+  });
 
+  const activeDayIndex = selectedDate ? getDay(selectedDate) : getDay(new Date());
+
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+  }
+
+  const filteredSessions = sessions.filter(session => {
+    if (!selectedDate) return false;
+    return startOfDay(parseISO(session.date)).getTime() === startOfDay(selectedDate).getTime();
+  });
+
+  const resetForm = () => {
+    setSessionDetails({ subject: "", time: "" });
+    setEditingSession(null);
+  };
+
+  const handleOpenDialog = (session: StudySession | null) => {
+    if (session) {
+      setEditingSession(session);
+      setSessionDetails({
+        subject: session.subject,
+        time: session.time,
+      });
+    } else {
+      resetForm();
+    }
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    resetForm();
+    setIsDialogOpen(false);
+  }
+
+  const handleSaveSession = () => {
+    if (!sessionDetails.subject || !sessionDetails.time || !selectedDate) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    if (editingSession) {
+      setSessions(
+        sessions.map((session) =>
+          session.id === editingSession.id 
+            ? { ...session, subject: sessionDetails.subject, time: sessionDetails.time, date: selectedDate.toISOString() } 
+            : session
+        )
+      );
+    } else {
+      const newSession: StudySession = {
+        id: Math.max(...sessions.map((s) => s.id), 0) + 1,
+        subject: sessionDetails.subject,
+        time: sessionDetails.time,
+        date: selectedDate.toISOString(),
+      };
+      setSessions([...sessions, newSession]);
+    }
+    handleCloseDialog();
+  };
+
+  const handleDeleteSession = (sessionId: number) => {
+    setSessions(sessions.filter(session => session.id !== sessionId));
+  };
+
+  const handleInputChange = (field: keyof typeof sessionDetails, value: string) => {
+    setSessionDetails(prev => ({ ...prev, [field]: value }));
+  };
 
   return (
     <div className="space-y-8 mx-4 md:mx-6">
@@ -27,19 +111,18 @@ export default function PlannerPage() {
           <p className="text-muted-foreground">Plan your study sessions and stay organized.</p>
         </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 flex justify-center">
+        <div className="lg:col-span-1">
            <Card className="shadow-md w-full max-w-sm">
               <CardContent className="p-0">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={setSelectedDate}
+                  onSelect={handleDateSelect}
                   className="p-3"
                   classNames={{
                     cell: "h-8 w-8 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
                     day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100",
-                    head_cell:
-                      "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
+                    head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
                     row: "flex w-full mt-1",
                   }}
                 />
@@ -50,47 +133,82 @@ export default function PlannerPage() {
             <Card className="shadow-md">
                 <CardContent className="p-4">
                     <div className="flex justify-around border-b pb-3">
-                        {daysOfWeek.map(day => (
+                        {daysOfWeek.map((day, index) => (
                             <button 
                                 key={day} 
-                                onClick={() => setActiveDay(day)}
-                                className={`text-center font-medium ${activeDay === day ? 'text-primary' : 'text-muted-foreground'}`}
+                                onClick={() => {
+                                  const today = new Date();
+                                  const currentDayOfWeek = today.getDay();
+                                  const difference = index - currentDayOfWeek;
+                                  const newDate = new Date(today);
+                                  newDate.setDate(today.getDate() + difference);
+                                  setSelectedDate(newDate);
+                                }}
+                                className={cn(
+                                  "text-center font-medium",
+                                  activeDayIndex === index ? 'text-primary' : 'text-muted-foreground'
+                                )}
                             >
                                 <p>{day}</p>
                             </button>
                         ))}
                     </div>
-                     <Button className="w-full mt-4 bg-accent text-accent-foreground hover:bg-accent/90">
-                       Add Session
+                     <Button onClick={() => handleOpenDialog(null)} className="w-full mt-4 bg-accent text-accent-foreground hover:bg-accent/90">
+                       <Plus className="mr-2 h-4 w-4" /> Add Session
                     </Button>
                 </CardContent>
             </Card>
 
            <Card className="shadow-md">
+              <CardHeader>
+                <CardTitle>Study Sessions for {selectedDate ? format(selectedDate, 'MMMM dd') : ''}</CardTitle>
+              </CardHeader>
                 <CardContent className="p-6">
-                     <h2 className="text-xl font-bold mb-4">Study Session List</h2>
                       <ul className="space-y-4">
-                        {studySessions.map((session) => (
+                        {filteredSessions.length > 0 ? filteredSessions.map((session) => (
                           <li key={session.id} className="flex items-center justify-between">
                             <div>
                               <p className="font-semibold">{session.time}</p>
                               <p className="text-muted-foreground">{session.subject}</p>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Button variant="ghost" size="icon">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon">
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(session)}>
                                     <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteSession(session.id)}>
+                                    <Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>
                           </li>
-                        ))}
+                        )) : (
+                          <p className="text-muted-foreground">No sessions planned for this day.</p>
+                        )}
                       </ul>
                 </CardContent>
             </Card>
         </div>
       </div>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]" onInteractOutside={handleCloseDialog}>
+            <DialogHeader>
+              <DialogTitle>{editingSession ? "Edit Session" : "Add Session"}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="subject">Subject</Label>
+                <Input id="subject" value={sessionDetails.subject} onChange={(e) => handleInputChange('subject', e.target.value)} placeholder="e.g. Math" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="time">Time</Label>
+                <Input id="time" value={sessionDetails.time} onChange={(e) => handleInputChange('time', e.target.value)} placeholder="e.g. 10:00 AM - 11:00 AM" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleCloseDialog} variant="outline">Cancel</Button>
+              <Button onClick={handleSaveSession} className="bg-primary hover:bg-primary/90 text-primary-foreground">Save</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </div>
   )
 }
