@@ -25,6 +25,7 @@ export const mainNavLinks: NavLink[] = [
 ];
 
 export const allNavLinks: NavLink[] = [
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/tasks', label: 'Tasks', icon: ListTodo },
     { href: '/planner', label: 'Study Planner', icon: Calendar },
     { href: '/groups', label: 'Groups', icon: Users },
