@@ -116,31 +116,31 @@ export default function PlannerPage() {
       <div className="space-y-6">
             <Card className="shadow-md">
                 <CardContent className="p-4">
-                    <div className="flex justify-around border-b pb-3">
-                        {daysOfWeek.map((day, index) => (
-                            <button 
-                                key={day} 
-                                onClick={() => {
-                                  const today = new Date();
-                                  const currentDayOfWeek = today.getDay();
-                                  const difference = index - currentDayOfWeek;
-                                  const newDate = new Date(today);
-                                  newDate.setDate(today.getDate() + difference);
-                                  setSelectedDate(newDate);
-                                }}
-                                className={cn(
-                                  "text-center font-medium w-full py-2",
-                                  activeDayIndex === index ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'
-                                )}
-                            >
-                                <p>{day}</p>
-                            </button>
-                        ))}
-                    </div>
-                     <div className="flex items-center justify-end gap-2 mt-4">
+                    <div className="flex items-center justify-between border-b pb-3">
+                        <div className="flex justify-around flex-grow">
+                            {daysOfWeek.map((day, index) => (
+                                <button 
+                                    key={day} 
+                                    onClick={() => {
+                                      const today = new Date();
+                                      const currentDayOfWeek = today.getDay();
+                                      const difference = index - currentDayOfWeek;
+                                      const newDate = new Date(today);
+                                      newDate.setDate(today.getDate() + difference);
+                                      setSelectedDate(newDate);
+                                    }}
+                                    className={cn(
+                                      "text-center font-medium w-full py-2",
+                                      activeDayIndex === index ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'
+                                    )}
+                                >
+                                    <p>{day}</p>
+                                </button>
+                            ))}
+                        </div>
                         <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" size="icon">
+                                <Button variant="ghost" size="icon" className="ml-4">
                                     <CalendarIcon className="h-5 w-5" />
                                 </Button>
                             </PopoverTrigger>
@@ -176,6 +176,7 @@ export default function PlannerPage() {
                                 <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(session)}>
                                     <Pencil className="h-4 w-4" />
                                 </Button>
+
                                 <Button variant="ghost" size="icon" onClick={() => handleDeleteSession(session.id)}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
