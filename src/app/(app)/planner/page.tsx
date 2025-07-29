@@ -21,20 +21,27 @@ export default function PlannerPage() {
 
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 mx-4 md:mx-6">
        <div>
           <h1 className="text-3xl font-bold font-headline">Study Planner</h1>
           <p className="text-muted-foreground">Plan your study sessions and stay organized.</p>
         </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1">
-           <Card className="shadow-md">
-              <CardContent className="p-0 flex justify-center">
+        <div className="lg:col-span-1 flex justify-center">
+           <Card className="shadow-md w-full max-w-sm">
+              <CardContent className="p-0">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
                   onSelect={setSelectedDate}
                   className="p-3"
+                  classNames={{
+                    cell: "h-8 w-8 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                    day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100",
+                    head_cell:
+                      "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
+                    row: "flex w-full mt-1",
+                  }}
                 />
               </CardContent>
             </Card>
