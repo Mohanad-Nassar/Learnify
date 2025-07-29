@@ -6,7 +6,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Plus, Calendar as CalendarIcon } from "lucide-react";
-import { format, parseISO, startOfDay, getDay } from 'date-fns';
+import { format, parseISO, startOfDay, getDay, startOfWeek, addDays, setDay } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,12 @@ export default function PlannerPage() {
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
     setIsCalendarOpen(false); // Close the popover on date selection
+  }
+
+  const handleDayOfWeekSelect = (dayIndex: number) => {
+    const currentWeekStart = startOfWeek(selectedDate || new Date());
+    const newSelectedDate = addDays(currentWeekStart, dayIndex);
+    setSelectedDate(newSelectedDate);
   }
 
   const filteredSessions = sessions.filter(session => {
@@ -108,7 +114,7 @@ export default function PlannerPage() {
   };
 
   return (
-    <div className="space-y-8 mx-4 md:mx-8">
+    <div className="space-y-6">
        <div>
           <h1 className="text-3xl font-bold font-headline">Study Planner</h1>
           <p className="text-muted-foreground">Plan your study sessions and stay organized.</p>
@@ -121,14 +127,7 @@ export default function PlannerPage() {
                             {daysOfWeek.map((day, index) => (
                                 <button 
                                     key={day} 
-                                    onClick={() => {
-                                      const today = new Date();
-                                      const currentDayOfWeek = today.getDay();
-                                      const difference = index - currentDayOfWeek;
-                                      const newDate = new Date(today);
-                                      newDate.setDate(today.getDate() + difference);
-                                      setSelectedDate(newDate);
-                                    }}
+                                    onClick={() => handleDayOfWeekSelect(index)}
                                     className={cn(
                                       "text-center font-medium w-full py-2",
                                       activeDayIndex === index ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'
