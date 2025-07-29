@@ -33,10 +33,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { MoreHorizontal, PlusCircle, Trash2, Pencil, ChevronDown } from "lucide-react"
+import { MoreHorizontal, PlusCircle, Trash2, Pencil, ChevronDown, CheckCircle } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { format, isToday, isThisWeek, addDays, parseISO } from 'date-fns';
 import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 
 
 type Task = {
@@ -88,6 +89,36 @@ const formatDueDate = (dateString: string) => {
     if (isToday(date)) return 'Due Today';
     if (isThisWeek(date, { weekStartsOn: 1 })) return `Due ${format(date, 'eeee')}`;
     return `Due ${format(date, 'MMM dd')}`;
+}
+
+const TaskItem = ({ task, onToggleComplete, onEdit, onDelete }: { task: Task; onToggleComplete: (id: number) => void; onEdit: (task: Task) => void; onDelete: (id: number) => void; }) => {
+  return (
+    <div className="flex items-center p-4 border-b last:border-b-0">
+        <Checkbox
+            id={`task-${task.id}`}
+            checked={task.isCompleted}
+            onCheckedChange={() => onToggleComplete(task.id)}
+            className="mr-4"
+        />
+        <div className="flex-grow">
+            <p className={cn("font-medium", task.isCompleted && "line-through text-muted-foreground")}>{task.title}</p>
+            <p className={cn("text-sm text-muted-foreground", task.isCompleted && "line-through")}>
+                {formatDueDate(task.dueDate)}
+            </p>
+            <p className={cn("text-sm text-muted-foreground", task.isCompleted && "line-through")}>{task.subject}</p>
+        </div>
+        {!task.isCompleted && (
+          <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="icon" onClick={() => onEdit(task)}>
+                  <Pencil className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => onDelete(task.id)}>
+                  <Trash2 className="h-4 w-4" />
+              </Button>
+          </div>
+        )}
+    </div>
+  )
 }
 
 export default function TasksPage() {
@@ -174,7 +205,7 @@ export default function TasksPage() {
     setTaskDetails(prev => ({ ...prev, [field]: value }));
   };
 
-  const filteredTasks = tasks.filter(task => {
+  const baseFilteredTasks = tasks.filter(task => {
     const date = parseISO(task.dueDate);
     const filterCondition = filter === 'All' || 
                             (filter === 'Today' && isToday(date)) ||
@@ -182,6 +213,9 @@ export default function TasksPage() {
     const subjectCondition = subjectFilter === 'All' || task.subject === subjectFilter;
     return filterCondition && subjectCondition;
   });
+
+  const incompleteTasks = baseFilteredTasks.filter(task => !task.isCompleted);
+  const completedTasks = baseFilteredTasks.filter(task => task.isCompleted);
 
   return (
     <div className="space-y-8 p-4 md:p-8 bg-background text-foreground">
@@ -249,35 +283,45 @@ export default function TasksPage() {
             <Card>
                 <CardContent className="p-0">
                     <div className="space-y-4">
-                        {filteredTasks.map((task) => (
-                            <div key={task.id} className="flex items-center p-4 border-b last:border-b-0">
-                                <Checkbox
-                                    id={`task-${task.id}`}
-                                    checked={task.isCompleted}
-                                    onCheckedChange={() => handleToggleComplete(task.id)}
-                                    className="mr-4"
-                                />
-                                <div className="flex-grow">
-                                    <p className={cn("font-medium", task.isCompleted && "line-through text-muted-foreground")}>{task.title}</p>
-                                    <p className={cn("text-sm text-muted-foreground", task.isCompleted && "line-through")}>
-                                        {formatDueDate(task.dueDate)}
-                                    </p>
-                                    <p className={cn("text-sm text-muted-foreground", task.isCompleted && "line-through")}>{task.subject}</p>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(task)}>
-                                        <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteTask(task.id)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
+                        {incompleteTasks.length > 0 ? incompleteTasks.map((task) => (
+                           <TaskItem 
+                            key={task.id}
+                            task={task}
+                            onToggleComplete={handleToggleComplete}
+                            onEdit={handleOpenDialog}
+                            onDelete={handleDeleteTask}
+                           />
+                        )) : (
+                          <p className="p-4 text-muted-foreground">No active tasks. Well done!</p>
+                        )}
                     </div>
                 </CardContent>
             </Card>
         </div>
+
+        {completedTasks.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mt-8 mb-4">
+              <CheckCircle className="h-5 w-5" />
+              <h2 className="text-xl font-semibold">Completed</h2>
+            </div>
+            <Card>
+                <CardContent className="p-0">
+                    <div className="space-y-4">
+                        {completedTasks.map((task) => (
+                          <TaskItem 
+                            key={task.id}
+                            task={task}
+                            onToggleComplete={handleToggleComplete}
+                            onEdit={handleOpenDialog}
+                            onDelete={handleDeleteTask}
+                          />
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+          </div>
+        )}
     </div>
   )
 }
