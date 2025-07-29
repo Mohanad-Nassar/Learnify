@@ -5,9 +5,10 @@ import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Calendar as CalendarIcon } from "lucide-react";
 import { format, parseISO, startOfDay, getDay } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ export default function PlannerPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [sessions, setSessions] = useState<StudySession[]>(initialSessions);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
   const [sessionDetails, setSessionDetails] = useState({
     subject: "",
@@ -40,6 +42,7 @@ export default function PlannerPage() {
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
+    setIsCalendarOpen(false); // Close the popover on date selection
   }
 
   const filteredSessions = sessions.filter(session => {
@@ -105,31 +108,12 @@ export default function PlannerPage() {
   };
 
   return (
-    <div className="space-y-8 mx-4 md:mx-6">
+    <div className="space-y-8">
        <div>
           <h1 className="text-3xl font-bold font-headline">Study Planner</h1>
           <p className="text-muted-foreground">Plan your study sessions and stay organized.</p>
         </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1">
-           <Card className="shadow-md w-full max-w-sm">
-              <CardContent className="p-0">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleDateSelect}
-                  className="p-3"
-                  classNames={{
-                    cell: "h-8 w-8 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                    day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100",
-                    head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
-                    row: "flex w-full mt-1",
-                  }}
-                />
-              </CardContent>
-            </Card>
-        </div>
-        <div className="lg:col-span-2 space-y-6">
+      <div className="space-y-6">
             <Card className="shadow-md">
                 <CardContent className="p-4">
                     <div className="flex justify-around border-b pb-3">
@@ -153,9 +137,26 @@ export default function PlannerPage() {
                             </button>
                         ))}
                     </div>
-                     <Button onClick={() => handleOpenDialog(null)} className="w-full mt-4 bg-accent text-accent-foreground hover:bg-accent/90">
-                       <Plus className="mr-2 h-4 w-4" /> Add Session
-                    </Button>
+                     <div className="flex items-center gap-2 mt-4">
+                        <Button onClick={() => handleOpenDialog(null)} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                           <Plus className="mr-2 h-4 w-4" /> Add Session
+                        </Button>
+                        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="icon">
+                                    <CalendarIcon className="h-5 w-5" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                                <Calendar
+                                    mode="single"
+                                    selected={selectedDate}
+                                    onSelect={handleDateSelect}
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -187,7 +188,6 @@ export default function PlannerPage() {
                 </CardContent>
             </Card>
         </div>
-      </div>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="sm:max-w-[425px]" onInteractOutside={handleCloseDialog}>
             <DialogHeader>
