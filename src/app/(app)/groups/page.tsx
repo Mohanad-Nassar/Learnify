@@ -5,9 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 
 const groups = [
-  { name: "Biology Study Group", members: 12, image: "https://placehold.co/40x40" },
-  { name: "History Buffs", members: 8, image: "https://placehold.co/40x40" },
-  { name: "Mathletes", members: 23, image: "https://placehold.co/40x40" },
+  { name: "Biology Study Group", members: 12, image: "/biology-group.png", hint: "biology microscope" },
+  { name: "History Buffs", members: 8, image: "/history-group.png", hint: "history books" },
+  { name: "Mathletes", members: 23, image: "/math-group.png", hint: "math symbols" },
 ];
 
 const chatMessages = [
@@ -32,7 +32,7 @@ export default function GroupsPage() {
               {groups.map((group) => (
                 <div key={group.name} className="flex items-center space-x-4">
                   <Avatar>
-                    <AvatarImage src={group.image} data-ai-hint="study group" />
+                    <AvatarImage src={group.image} data-ai-hint={group.hint} />
                     <AvatarFallback>{group.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
