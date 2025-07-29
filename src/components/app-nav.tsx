@@ -14,7 +14,7 @@ export default function AppNav() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-primary bg-card">
-        <div className="container flex h-16 items-center">
+        <div className="flex h-16 items-center px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-6">
                 <Link href="/dashboard" className="flex items-center space-x-2">
                     <Leaf className="h-6 w-6 text-primary" />
@@ -37,7 +37,7 @@ export default function AppNav() {
                 ))}
             </nav>
 
-            <div className="flex items-center justify-end space-x-4">
+            <div className="flex flex-1 items-center justify-end space-x-4">
                 <Button variant="ghost" size="icon">
                     <Bell className="h-5 w-5" />
                 </Button>
