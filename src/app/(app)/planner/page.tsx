@@ -1,14 +1,25 @@
-import { Calendar } from "@/components/ui/calendar"
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 
-const upcomingSessions = [
-  { time: "10:00 AM", title: "Math Tutoring", type: "Tutoring" },
-  { time: "2:00 PM", title: "History Study Group", type: "Group Study" },
-  { time: "5:00 PM", title: "Spanish Conversation", type: "Practice" },
+'use client'
+
+import { useState } from "react";
+import { Calendar } from "@/components/ui/calendar"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button";
+import { Pencil, Trash2 } from "lucide-react";
+
+const studySessions = [
+  { id: 1, time: "10:00 AM - 11:00 AM", subject: "Math" },
+  { id: 2, time: "11:00 AM - 12:00 PM", subject: "Science" },
+  { id: 3, time: "12:00 PM - 1:00 PM", subject: "History" },
 ]
 
+const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
 export default function PlannerPage() {
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [activeDay, setActiveDay] = useState("Mon");
+
+
   return (
     <div className="space-y-8">
        <div>
@@ -21,7 +32,8 @@ export default function PlannerPage() {
               <CardContent className="p-0">
                 <Calendar
                   mode="single"
-                  selected={new Date()}
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
                   className="p-3 w-full"
                   classNames={{
                       months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
@@ -34,30 +46,49 @@ export default function PlannerPage() {
               </CardContent>
             </Card>
         </div>
-        <div>
-          <Card className="shadow-md">
-            <CardHeader>
-              <CardTitle>Upcoming Sessions</CardTitle>
-              <CardDescription>What's on your schedule for today.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-4">
-                {upcomingSessions.map((session, index) => (
-                  <li key={index} className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-16 text-right">
-                      <p className="font-semibold text-sm">{session.time}</p>
+        <div className="space-y-6">
+            <Card className="shadow-md">
+                <CardContent className="p-4">
+                    <div className="flex justify-around border-b pb-3">
+                        {daysOfWeek.map(day => (
+                            <button 
+                                key={day} 
+                                onClick={() => setActiveDay(day)}
+                                className={`text-center font-medium ${activeDay === day ? 'text-primary' : 'text-muted-foreground'}`}
+                            >
+                                <p>{day}</p>
+                            </button>
+                        ))}
                     </div>
-                    <div className="relative w-full">
-                       <span className="absolute left-0 top-1 h-full w-px bg-border -translate-x-4"></span>
-                       <span className="absolute left-0 top-2.5 h-3 w-3 rounded-full bg-primary -translate-x-[22px]"></span>
-                      <p className="font-medium">{session.title}</p>
-                      <Badge variant="outline" className="mt-1">{session.type}</Badge>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+                     <Button className="w-full mt-4 bg-accent text-accent-foreground hover:bg-accent/90">
+                       Add Session
+                    </Button>
+                </CardContent>
+            </Card>
+
+           <Card className="shadow-md">
+                <CardContent className="p-6">
+                     <h2 className="text-xl font-bold mb-4">Study Session List</h2>
+                      <ul className="space-y-4">
+                        {studySessions.map((session) => (
+                          <li key={session.id} className="flex items-center justify-between">
+                            <div>
+                              <p className="font-semibold">{session.time}</p>
+                              <p className="text-muted-foreground">{session.subject}</p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Button variant="ghost" size="icon">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon">
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                </CardContent>
+            </Card>
         </div>
       </div>
     </div>
