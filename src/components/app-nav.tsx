@@ -14,29 +14,30 @@ export default function AppNav() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-primary bg-card">
-        <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
+        <div className="container flex h-16 items-center">
             <div className="flex items-center gap-6">
                 <Link href="/dashboard" className="flex items-center space-x-2">
                     <Leaf className="h-6 w-6 text-primary" />
                     <span className="inline-block font-bold text-lg">Learnify</span>
                 </Link>
-                <nav className="hidden gap-6 md:flex">
-                    {allNavLinks.map((link) => (
-                    <Link
-                        key={link.href}
-                        href={link.href}
-                        className={cn(
-                        "text-sm font-medium transition-colors hover:text-primary",
-                        pathname === link.href ? "text-primary" : "text-muted-foreground"
-                        )}
-                    >
-                        {link.label}
-                    </Link>
-                    ))}
-                </nav>
             </div>
 
-            <div className="flex flex-1 items-center justify-end space-x-4">
+            <nav className="hidden flex-1 justify-center gap-6 md:flex">
+                {allNavLinks.map((link) => (
+                <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                    "text-sm font-medium transition-colors hover:text-primary",
+                    pathname === link.href ? "text-primary" : "text-muted-foreground"
+                    )}
+                >
+                    {link.label}
+                </Link>
+                ))}
+            </nav>
+
+            <div className="flex items-center justify-end space-x-4">
                 <Button variant="ghost" size="icon">
                     <Bell className="h-5 w-5" />
                 </Button>
