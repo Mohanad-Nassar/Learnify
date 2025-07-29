@@ -1,3 +1,6 @@
+'use client'
+
+import { useTheme } from "next-themes"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,6 +10,8 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 
 export default function ProfilePage() {
+  const { setTheme, theme } = useTheme()
+
   return (
     <div className="space-y-8">
       <div>
@@ -76,7 +81,11 @@ export default function ProfilePage() {
                     Enable the dark theme for the application.
                   </span>
                 </Label>
-                <Switch id="dark-mode" />
+                <Switch 
+                  id="dark-mode" 
+                  checked={theme === 'dark'}
+                  onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                />
               </div>
             </CardContent>
           </Card>
