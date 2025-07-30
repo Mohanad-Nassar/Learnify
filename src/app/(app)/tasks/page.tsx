@@ -92,12 +92,9 @@ const formatDueDate = (dateString: string) => {
     return `Due ${format(date, 'MMM dd')}`;
 }
 
-const TaskItem = ({ task, onToggleComplete, onEdit, onDelete, isAnimating }: { task: Task; onToggleComplete: (id: number, isCompleted: boolean) => void; onEdit: (task: Task) => void; onDelete: (id: number) => void; isAnimating: boolean }) => {
+const TaskItem = ({ task, onToggleComplete, onEdit, onDelete }: { task: Task; onToggleComplete: (id: number, isCompleted: boolean) => void; onEdit: (task: Task) => void; onDelete: (id: number) => void; }) => {
   return (
-     <Card className={cn(
-        "hover:shadow-md transition-all duration-300",
-        isAnimating && "shadow-lg shadow-primary/50 -translate-y-1"
-      )}>
+     <Card className="hover:shadow-md transition-all duration-300">
       <CardContent className="p-4 flex items-center">
         <Checkbox
             id={`task-${task.id}`}
@@ -146,19 +143,18 @@ export default function TasksPage() {
   });
 
   useEffect(() => {
-    if (showConfetti && completedTaskId !== null) {
-      const timer = setTimeout(() => {
-        setShowConfetti(false);
-        setTasks(currentTasks => 
-            currentTasks.map(task => 
-                task.id === completedTaskId ? { ...task, isCompleted: true, status: "Done" } : task
-            )
-        );
-        setCompletedTaskId(null);
-      }, 2000); // Confetti duration
-      return () => clearTimeout(timer);
+    if (completedTaskId !== null) {
+        const timer = setTimeout(() => {
+            setTasks(currentTasks => 
+                currentTasks.map(task => 
+                    task.id === completedTaskId ? { ...task, status: "Done" } : task
+                )
+            );
+            setCompletedTaskId(null);
+        }, 2000); // Wait for animations
+        return () => clearTimeout(timer);
     }
-  }, [showConfetti, completedTaskId]);
+  }, [completedTaskId]);
 
 
   const resetForm = () => {
@@ -224,7 +220,7 @@ export default function TasksPage() {
     if (isCompleted) {
       setCompletedTaskId(taskId);
       setShowConfetti(true);
-      // Strikethrough immediately
+      // Immediately update visual state
       setTasks(tasks => tasks.map(task => 
         task.id === taskId ? { ...task, isCompleted: true } : task
       ));
@@ -325,7 +321,6 @@ export default function TasksPage() {
                     onToggleComplete={handleToggleComplete}
                     onEdit={handleOpenDialog}
                     onDelete={handleDeleteTask}
-                    isAnimating={false}
                     />
                 )) : (
                     <p className="p-4 text-center text-muted-foreground bg-muted/50 rounded-lg">No active tasks. Well done!</p>
@@ -347,7 +342,6 @@ export default function TasksPage() {
                     onToggleComplete={handleToggleComplete}
                     onEdit={handleOpenDialog}
                     onDelete={handleDeleteTask}
-                    isAnimating={false}
                     />
                 ))}
             </div>
@@ -356,5 +350,3 @@ export default function TasksPage() {
     </div>
   )
 }
-
-    
