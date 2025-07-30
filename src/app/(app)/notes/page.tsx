@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState, useContext, useMemo } from "react"
+import { useState, useContext, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Plus, Edit, Pencil } from "lucide-react"
@@ -183,12 +183,16 @@ const placeholderImages = [
 
 export default function NotesPage() {
   const { subjects } = useContext(SubjectContext);
-  const [notes, setNotes] = useState(getInitialNotes());
+  const [notes, setNotes] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState("All");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<any | null>(null);
   const [newNoteDetails, setNewNoteDetails] = useState({ title: "", content: "", subject: "" });
+
+  useEffect(() => {
+    setNotes(getInitialNotes());
+  }, []);
 
   const updateGlobalNotes = (newNotes: any[]) => {
       setNotes(newNotes);
