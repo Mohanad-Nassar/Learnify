@@ -1,87 +1,124 @@
+
 'use client'
 
-import { useState, useContext } from "react"
+import { useState, useContext, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Textarea } from "@/components/ui/textarea"
-import { PlusCircle } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Plus } from "lucide-react"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { SubjectContext } from "@/context/SubjectContext"
 
 const initialNotes = [
-  { id: 1, title: "Biology Chapter 5 Summary", content: "Mitochondria is the powerhouse of the cell...", subject: "Biology" },
-  { id: 2, title: "History Lecture Notes", content: "The French Revolution began in 1789...", subject: "History" },
-  { id: 3, title: "Ideas for English Essay", content: "Explore the theme of identity in 'The Catcher in the Rye'...", subject: "English" },
-  { id: 4, title: "Math Formulas", content: "Pythagorean theorem: a² + b² = c²", subject: "Calculus" },
+  { 
+    id: 1, 
+    title: "Calculus Notes", 
+    content: "Comprehensive notes on calculus, covering limits, derivatives, and integrals.", 
+    subject: "Math",
+    image: "https://placehold.co/300x200",
+    imageHint: "mathematics graph"
+  },
+  { 
+    id: 2, 
+    title: "Biology Notes", 
+    content: "Detailed notes on cell biology, genetics, and evolution.", 
+    subject: "Science",
+    image: "https://placehold.co/300x200",
+    imageHint: "biology book"
+  },
+  { 
+    id: 3, 
+    title: "World War II Notes", 
+    content: "Key events, causes, and consequences of World War II.", 
+    subject: "History",
+    image: "https://placehold.co/300x200",
+    imageHint: "history book"
+  },
+  { 
+    id: 4, 
+    title: "Algebra Notes", 
+    content: "Notes on linear equations, quadratic equations, and polynomials.", 
+    subject: "Math",
+    image: "https://placehold.co/300x200",
+    imageHint: "algebra textbook"
+  },
 ];
 
 
 export default function NotesPage() {
-  const [notes, setNotes] = useState(initialNotes)
-  const [selectedNoteId, setSelectedNoteId] = useState(1);
-  const selectedNote = notes.find(n => n.id === selectedNoteId) || notes[0];
   const { subjects } = useContext(SubjectContext);
+  const [activeFilter, setActiveFilter] = useState("All");
 
-  // Example of how you might use the subjects from context
-  const notesForSubject = (subjectName: string) => {
-    return notes.filter(note => note.subject === subjectName);
+  const categories = useMemo(() => {
+    const allCategories = subjects.map(s => s.category);
+    return ["All", ...Array.from(new Set(allCategories))];
+  }, [subjects]);
+
+  const filteredNotes = useMemo(() => {
+    if (activeFilter === "All") {
+      return initialNotes;
+    }
+    const subjectNames = subjects.filter(s => s.category === activeFilter).map(s => s.name);
+    return initialNotes.filter(note => subjectNames.includes(note.subject) || note.subject === activeFilter);
+  }, [activeFilter, subjects]);
+  
+  const getCategoryForNote = (noteSubject: string) => {
+    const subject = subjects.find(s => s.name === noteSubject);
+    return subject ? subject.category : "General";
   }
 
   return (
     <div className="space-y-8">
-      <div>
+      <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-headline">Note Keeper</h1>
-        <p className="text-muted-foreground">Your digital notebook for all subjects.</p>
+        <Button variant="outline">
+          <Plus className="mr-2 h-4 w-4" /> Add Note
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 h-[calc(100vh-12rem)]">
-        <Card className="md:col-span-1 lg:col-span-1 shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>My Notes</CardTitle>
-            <Button variant="ghost" size="icon">
-              <PlusCircle className="h-5 w-5" />
+      <div>
+        <div className="flex items-center space-x-2 border-b">
+          {categories.map((category) => (
+            <Button
+              key={category}
+              variant="ghost"
+              onClick={() => setActiveFilter(category)}
+              className={cn(
+                "rounded-none font-semibold",
+                activeFilter === category
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-muted-foreground"
+              )}
+            >
+              {category}
             </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            <ScrollArea className="h-[calc(100vh-18rem)]">
-              <div className="space-y-1 p-2">
-              {notes.map(note => (
-                <button 
-                  key={note.id}
-                  onClick={() => setSelectedNoteId(note.id)}
-                  className={cn(
-                    "w-full text-left p-3 rounded-md hover:bg-muted",
-                    selectedNoteId === note.id && "bg-muted"
-                  )}
-                >
-                  <p className="font-semibold truncate">{note.title}</p>
-                </button>
-              ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-
-        <div className="md:col-span-2 lg:col-span-3 h-full">
-           <Card className="shadow-md h-full flex flex-col">
-              <CardHeader>
-                <Input 
-                  defaultValue={selectedNote.title} 
-                  className="text-2xl font-bold border-0 shadow-none focus-visible:ring-0 p-0 h-auto"
-                  placeholder="Note Title"
-                />
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <Textarea 
-                  defaultValue={selectedNote.content}
-                  className="w-full h-full resize-none border-0 shadow-none focus-visible:ring-0 p-0"
-                  placeholder="Start writing your notes here..."
-                />
-              </CardContent>
-            </Card>
+          ))}
         </div>
+      </div>
+
+      <div className="space-y-6">
+        {filteredNotes.map((note) => (
+          <Card key={note.id} className="overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
+            <div className="grid grid-cols-1 md:grid-cols-3">
+              <div className="md:col-span-2">
+                <CardContent className="p-6">
+                  <p className="text-sm font-semibold text-muted-foreground">{getCategoryForNote(note.subject)}</p>
+                  <h2 className="text-xl font-bold mt-1 mb-2">{note.title}</h2>
+                  <p className="text-muted-foreground">{note.content}</p>
+                </CardContent>
+              </div>
+              <div className="relative h-40 md:h-full">
+                <Image
+                  src={note.image}
+                  alt={note.title}
+                  layout="fill"
+                  objectFit="cover"
+                  data-ai-hint={note.imageHint}
+                />
+              </div>
+            </div>
+          </Card>
+        ))}
       </div>
     </div>
   )
