@@ -55,7 +55,7 @@ const initialTasks: Task[] = [
     id: 1,
     title: "Complete Math Assignment",
     subject: "Math",
-    status: "In Progress",
+    status: "Not Started",
     dueDate: new Date().toISOString(),
     isCompleted: false,
   },
@@ -132,24 +132,29 @@ export default function TasksPage() {
   const [filter, setFilter] = useState('All');
   const [subjectFilter, setSubjectFilter] = useState('All');
   const [showConfetti, setShowConfetti] = useState(false);
-  const newlyCompletedTaskRef = useRef<number | null>(null);
 
 
   useEffect(() => {
-    if (newlyCompletedTaskRef.current !== null) {
-      const taskId = newlyCompletedTaskRef.current;
-      const timeoutId = setTimeout(() => {
-        setTasks(currentTasks =>
-          currentTasks.map(task =>
-            task.id === taskId ? { ...task, status: "Done" } : task
-          )
+    const tasksToUpdate = tasks.filter(
+      (task) => task.isCompleted && task.status !== "Done"
+    );
+
+    if (tasksToUpdate.length > 0) {
+      const timer = setTimeout(() => {
+        setTasks((currentTasks) =>
+          currentTasks.map((task) => {
+            if (tasksToUpdate.some((t) => t.id === task.id)) {
+              return { ...task, status: "Done" };
+            }
+            return task;
+          })
         );
-        newlyCompletedTaskRef.current = null;
       }, 2000);
 
-      return () => clearTimeout(timeoutId);
+      return () => clearTimeout(timer);
     }
   }, [tasks]);
+
 
   const subjects = ['All', ...Array.from(new Set(initialTasks.map(t => t.subject)))];
 
@@ -221,7 +226,6 @@ export default function TasksPage() {
   const handleToggleComplete = (taskId: number, isCompleted: boolean) => {
     if (isCompleted) {
       setShowConfetti(true);
-      newlyCompletedTaskRef.current = taskId;
     }
     
     setTasks(currentTasks =>
