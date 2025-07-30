@@ -37,11 +37,29 @@ const getInitialNotes = () => {
                     id: 1, 
                     title: "Chapter 1: Limits", 
                     sections: [
-                        {id: 1, title: "Introduction to Limits", content: "This section introduces the concept of limits."},
-                        {id: 2, title: "Limit Laws", content: "This section covers the basic laws for evaluating limits."},
+                        {id: 1, title: "Introduction to Limits", content: "### What is a Limit?\n\nA limit in calculus is the value that a function approaches as the input approaches some value."},
+                        {id: 2, title: "Limit Laws", content: "#### Basic Limit Laws\n\n1.  **Sum Law:** The limit of a sum is the sum of the limits.\n2.  **Difference Law:** The limit of a difference is the difference of the limits."},
+                        {id: 3, title: "One-Sided Limits", content: "One-sided limits are limits taken from either the left or the right side of a point."}
                     ]
                 }, 
-                {id: 2, title: "Chapter 2: Derivatives", sections: []}
+                {
+                    id: 2, 
+                    title: "Chapter 2: Derivatives", 
+                    sections: [
+                        {id: 1, title: "Definition of a Derivative", content: "The derivative of a function measures the instantaneous rate of change of the function."},
+                        {id: 2, title: "Power Rule", content: "The power rule is a shortcut for finding the derivative of a polynomial."},
+                        {id: 3, title: "Product Rule", content: "The product rule is used to find the derivative of a product of two functions."}
+                    ]
+                },
+                {
+                    id: 3,
+                    title: "Chapter 3: Integrals",
+                    sections: [
+                        {id: 1, title: "Antiderivatives", content: "An antiderivative is a function whose derivative is the original function."},
+                        {id: 2, title: "The Definite Integral", content: "The definite integral of a function gives the area under the curve."},
+                        {id: 3, title: "The Fundamental Theorem", content: "The Fundamental Theorem of Calculus connects differentiation and integration."}
+                    ]
+                }
             ]
           },
           { 
@@ -51,7 +69,35 @@ const getInitialNotes = () => {
             subject: "Biology",
             image: "https://placehold.co/300x201",
             imageHint: "biology book",
-            chapters: []
+            chapters: [
+                {
+                    id: 1, 
+                    title: "Chapter 1: The Cell", 
+                    sections: [
+                        {id: 1, title: "Introduction to Cells", content: "Cells are the basic building blocks of all living things."},
+                        {id: 2, title: "Eukaryotic vs. Prokaryotic", content: "Eukaryotic cells have a nucleus, while prokaryotic cells do not."},
+                        {id: 3, title: "Organelles", content: "Organelles are specialized structures within a cell that perform specific functions."}
+                    ]
+                }, 
+                {
+                    id: 2, 
+                    title: "Chapter 2: Genetics", 
+                    sections: [
+                        {id: 1, title: "DNA and RNA", content: "DNA and RNA are the molecules that carry genetic information."},
+                        {id: 2, title: "Mendelian Genetics", content: "Mendelian genetics describes the patterns of inheritance of traits."},
+                        {id: 3, title: "Gene Expression", content: "Gene expression is the process by which information from a gene is used to synthesize a functional gene product."}
+                    ]
+                },
+                {
+                    id: 3,
+                    title: "Chapter 3: Evolution",
+                    sections: [
+                        {id: 1, title: "Natural Selection", content: "Natural selection is the process by which organisms better adapted to their environment tend to survive and produce more offspring."},
+                        {id: 2, title: "Speciation", content: "Speciation is the evolutionary process by which populations evolve to become distinct species."},
+                        {id: 3, title: "The Fossil Record", content: "The fossil record provides evidence of the history of life on Earth."}
+                    ]
+                }
+            ]
           },
           // ... other notes
         ];
