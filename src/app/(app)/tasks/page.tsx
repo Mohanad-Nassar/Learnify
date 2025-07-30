@@ -93,7 +93,8 @@ const formatDueDate = (dateString: string) => {
 
 const TaskItem = ({ task, onToggleComplete, onEdit, onDelete }: { task: Task; onToggleComplete: (id: number) => void; onEdit: (task: Task) => void; onDelete: (id: number) => void; }) => {
   return (
-    <div className="flex items-center p-4 border-b last:border-b-0 hover:bg-muted/50 transition-colors">
+    <Card className="hover:shadow-md transition-shadow duration-200">
+      <CardContent className="p-4 flex items-center">
         <Checkbox
             id={`task-${task.id}`}
             checked={task.isCompleted}
@@ -102,13 +103,14 @@ const TaskItem = ({ task, onToggleComplete, onEdit, onDelete }: { task: Task; on
         />
         <div className="flex-grow">
             <p className={cn("font-medium", task.isCompleted && "line-through text-muted-foreground")}>{task.title}</p>
-            <p className={cn("text-sm text-muted-foreground", task.isCompleted && "line-through")}>
-                {formatDueDate(task.dueDate)}
-            </p>
-            <p className={cn("text-sm text-muted-foreground", task.isCompleted && "line-through")}>{task.subject}</p>
+            <div className={cn("text-sm text-muted-foreground", task.isCompleted && "line-through")}>
+                <span>{formatDueDate(task.dueDate)}</span>
+                {task.subject && <span className="mx-1">·</span>}
+                <span>{task.subject}</span>
+            </div>
         </div>
         {!task.isCompleted && (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1">
               <Button variant="ghost" size="icon" onClick={() => onEdit(task)}>
                   <Pencil className="h-4 w-4" />
               </Button>
@@ -117,7 +119,8 @@ const TaskItem = ({ task, onToggleComplete, onEdit, onDelete }: { task: Task; on
               </Button>
           </div>
         )}
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -282,23 +285,19 @@ export default function TasksPage() {
                 Add Task
               </Button>
             </div>
-            <Card>
-                <CardContent className="p-0">
-                    <div className="space-y-4">
-                        {incompleteTasks.length > 0 ? incompleteTasks.map((task) => (
-                           <TaskItem 
-                            key={task.id}
-                            task={task}
-                            onToggleComplete={handleToggleComplete}
-                            onEdit={handleOpenDialog}
-                            onDelete={handleDeleteTask}
-                           />
-                        )) : (
-                          <p className="p-4 text-muted-foreground">No active tasks. Well done!</p>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
+            <div className="space-y-3">
+                {incompleteTasks.length > 0 ? incompleteTasks.map((task) => (
+                    <TaskItem 
+                    key={task.id}
+                    task={task}
+                    onToggleComplete={handleToggleComplete}
+                    onEdit={handleOpenDialog}
+                    onDelete={handleDeleteTask}
+                    />
+                )) : (
+                    <p className="p-4 text-center text-muted-foreground bg-muted/50 rounded-lg">No active tasks. Well done!</p>
+                )}
+            </div>
         </div>
 
         {completedTasks.length > 0 && (
@@ -307,21 +306,17 @@ export default function TasksPage() {
               <CheckCircle className="h-5 w-5" />
               <h2 className="text-xl font-semibold">Completed</h2>
             </div>
-            <Card>
-                <CardContent className="p-0">
-                    <div className="space-y-4">
-                        {completedTasks.map((task) => (
-                          <TaskItem 
-                            key={task.id}
-                            task={task}
-                            onToggleComplete={handleToggleComplete}
-                            onEdit={handleOpenDialog}
-                            onDelete={handleDeleteTask}
-                          />
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+             <div className="space-y-3">
+                {completedTasks.map((task) => (
+                    <TaskItem 
+                    key={task.id}
+                    task={task}
+                    onToggleComplete={handleToggleComplete}
+                    onEdit={handleOpenDialog}
+                    onDelete={handleDeleteTask}
+                    />
+                ))}
+            </div>
           </div>
         )}
     </div>
