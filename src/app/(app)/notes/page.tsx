@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useContext } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -8,17 +8,26 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
 import { PlusCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { SubjectContext } from "@/context/SubjectContext"
 
-const notes = [
-  { id: 1, title: "Biology Chapter 5 Summary", content: "Mitochondria is the powerhouse of the cell..." },
-  { id: 2, title: "History Lecture Notes", content: "The French Revolution began in 1789..." },
-  { id: 3, title: "Ideas for English Essay", content: "Explore the theme of identity in 'The Catcher in the Rye'..." },
-  { id: 4, title: "Math Formulas", content: "Pythagorean theorem: a² + b² = c²" },
+const initialNotes = [
+  { id: 1, title: "Biology Chapter 5 Summary", content: "Mitochondria is the powerhouse of the cell...", subject: "Biology" },
+  { id: 2, title: "History Lecture Notes", content: "The French Revolution began in 1789...", subject: "History" },
+  { id: 3, title: "Ideas for English Essay", content: "Explore the theme of identity in 'The Catcher in the Rye'...", subject: "English" },
+  { id: 4, title: "Math Formulas", content: "Pythagorean theorem: a² + b² = c²", subject: "Calculus" },
 ];
 
+
 export default function NotesPage() {
+  const [notes, setNotes] = useState(initialNotes)
   const [selectedNoteId, setSelectedNoteId] = useState(1);
   const selectedNote = notes.find(n => n.id === selectedNoteId) || notes[0];
+  const { subjects } = useContext(SubjectContext);
+
+  // Example of how you might use the subjects from context
+  const notesForSubject = (subjectName: string) => {
+    return notes.filter(note => note.subject === subjectName);
+  }
 
   return (
     <div className="space-y-8">

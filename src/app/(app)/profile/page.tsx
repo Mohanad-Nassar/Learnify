@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useContext } from "react"
 import { useTheme } from "next-themes"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -10,22 +10,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Book, Plus, Trash2 } from "lucide-react"
-
-type Subject = {
-  id: number;
-  name: string;
-  category: string;
-}
-
-const initialSubjects: Subject[] = [
-  { id: 1, name: "Calculus", category: "Math" },
-  { id: 2, name: "Physics", category: "Science" },
-  { id: 3, name: "World History", category: "History" },
-]
+import { SubjectContext } from "@/context/SubjectContext"
 
 export default function ProfilePage() {
   const { setTheme, theme } = useTheme()
-  const [subjects, setSubjects] = useState<Subject[]>(initialSubjects)
+  const { subjects, addSubject, deleteSubject } = useContext(SubjectContext)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [newSubject, setNewSubject] = useState({ name: "", category: "" })
 
@@ -34,14 +23,13 @@ export default function ProfilePage() {
       alert("Please fill out both fields.");
       return;
     }
-    const newId = subjects.length > 0 ? Math.max(...subjects.map(s => s.id)) + 1 : 1
-    setSubjects([...subjects, { ...newSubject, id: newId }])
+    addSubject(newSubject);
     setNewSubject({ name: "", category: "" })
     setIsDialogOpen(false)
   }
 
   const handleDeleteSubject = (id: number) => {
-    setSubjects(subjects.filter(subject => subject.id !== id))
+    deleteSubject(id);
   }
 
   return (

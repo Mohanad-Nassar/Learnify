@@ -1,17 +1,19 @@
-
 'use client'
 
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Plus, Calendar as CalendarIcon } from "lucide-react";
-import { format, parseISO, startOfDay, getDay, startOfWeek, addDays, setDay } from 'date-fns';
+import { format, parseISO, startOfDay, getDay, startOfWeek, setDay } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SubjectContext } from "@/context/SubjectContext";
+
 
 type StudySession = {
   id: number;
@@ -33,6 +35,7 @@ export default function PlannerPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
+  const { subjects } = useContext(SubjectContext);
   const [sessionDetails, setSessionDetails] = useState({
     subject: "",
     time: "",
@@ -196,9 +199,21 @@ export default function PlannerPage() {
               <DialogTitle>{editingSession ? "Edit Session" : "Add Session"}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="space-y-2">
+            <div className="space-y-2">
                 <Label htmlFor="subject">Subject</Label>
-                <Input id="subject" value={sessionDetails.subject} onChange={(e) => handleInputChange('subject', e.target.value)} placeholder="e.g. Math" />
+                <Select
+                  value={sessionDetails.subject}
+                  onValueChange={(value) => handleInputChange('subject', value)}
+                >
+                  <SelectTrigger id="subject">
+                    <SelectValue placeholder="Select a subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.name}>{subject.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="time">Time</Label>

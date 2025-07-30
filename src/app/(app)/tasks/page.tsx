@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useContext } from "react";
 import Confetti from 'react-confetti'
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -39,6 +39,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { format, isToday, isThisWeek, addDays, parseISO } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
+import { SubjectContext } from "@/context/SubjectContext";
 
 
 type Task = {
@@ -54,7 +55,7 @@ const initialTasks: Task[] = [
   {
     id: 1,
     title: "Complete Math Assignment",
-    subject: "Math",
+    subject: "Calculus",
     status: "Not Started",
     dueDate: new Date().toISOString(),
     isCompleted: false,
@@ -62,7 +63,7 @@ const initialTasks: Task[] = [
   {
     id: 2,
     title: "Write History Essay",
-    subject: "History",
+    subject: "World History",
     status: "Not Started",
     dueDate: addDays(new Date(), 1).toISOString(),
     isCompleted: false,
@@ -78,7 +79,7 @@ const initialTasks: Task[] = [
   {
     id: 4,
     title: "Prepare Presentation for Chemistry",
-    subject: "Chemistry",
+    subject: "Physics",
     status: "In Progress",
     dueDate: addDays(new Date(), 5).toISOString(),
     isCompleted: false,
@@ -135,6 +136,7 @@ export default function TasksPage() {
   const [filter, setFilter] = useState('All');
   const [subjectFilter, setSubjectFilter] = useState('All');
   const [showConfetti, setShowConfetti] = useState(false);
+  const { subjects } = useContext(SubjectContext);
 
 
   useEffect(() => {
@@ -159,7 +161,7 @@ export default function TasksPage() {
   }, [tasks]);
 
 
-  const subjects = ['All', ...Array.from(new Set(initialTasks.map(t => t.subject)))];
+  const subjectOptions = ['All', ...subjects.map(s => s.name)];
 
   const [taskDetails, setTaskDetails] = useState({
     title: "",
@@ -274,7 +276,7 @@ export default function TasksPage() {
             <DropdownMenuContent>
                 <DropdownMenuLabel>Filter by Subject</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {subjects.map(subject => (
+                {subjectOptions.map(subject => (
                      <DropdownMenuCheckboxItem
                         key={subject}
                         checked={subjectFilter === subject}
@@ -299,7 +301,19 @@ export default function TasksPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="subject">Subject</Label>
-                <Input id="subject" value={taskDetails.subject} onChange={(e) => handleInputChange('subject', e.target.value)} placeholder="e.g. Math" />
+                <Select
+                  value={taskDetails.subject}
+                  onValueChange={(value) => handleInputChange('subject', value)}
+                >
+                  <SelectTrigger id="subject">
+                    <SelectValue placeholder="Select a subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.name}>{subject.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dueDate">Due Date</Label>
