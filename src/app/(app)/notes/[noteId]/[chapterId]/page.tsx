@@ -28,6 +28,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Separator } from '@/components/ui/separator';
 
 // Temporary data store, same as in notes/page.tsx and notes/[noteId]/page.tsx
 const initialNotes = [
@@ -175,23 +178,29 @@ export default function ChapterPage() {
                     </BreadcrumbList>
                 </Breadcrumb>
             </div>
-            <Card className="h-[calc(100vh-8rem)]">
-                <Card className="h-full flex flex-col">
-                  <div className="p-4 border-b">
-                      <h1 className="text-2xl font-bold">{chapter.title}</h1>
+            <Card className="h-[calc(100vh-8rem)] flex flex-col">
+              <div className="p-4 border-b flex items-center justify-between">
+                  <h1 className="text-2xl font-bold">{chapter.title}</h1>
+                  <Button>Save Changes</Button>
+              </div>
+              <div className="grid md:grid-cols-2 flex-1 overflow-hidden">
+                <div className="relative h-full">
+                    <Textarea
+                        value={chapterContent}
+                        onChange={(e) => setChapterContent(e.target.value)}
+                        className="w-full h-full border-0 resize-none focus-visible:ring-0 p-6 text-base"
+                        placeholder="Start writing your notes using Markdown..."
+                    />
+                </div>
+                <Separator orientation="vertical" className="h-full hidden md:block" />
+                <div className="relative h-full overflow-auto hidden md:block">
+                  <div className="prose prose-sm dark:prose-invert max-w-none p-6">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {chapterContent}
+                    </ReactMarkdown>
                   </div>
-                  <div className="flex-grow p-1">
-                      <Textarea
-                          value={chapterContent}
-                          onChange={(e) => setChapterContent(e.target.value)}
-                          className="w-full h-full border-0 resize-none focus-visible:ring-0 p-4"
-                          placeholder="Start writing your notes using Markdown..."
-                      />
-                  </div>
-                  <div className="p-4 border-t flex justify-end">
-                      <Button>Save Changes</Button>
-                  </div>
-                </Card>
+                </div>
+              </div>
             </Card>
         </SidebarInset>
     </SidebarProvider>
