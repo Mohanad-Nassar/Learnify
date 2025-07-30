@@ -299,13 +299,15 @@ export default function NoteDetailPage() {
         </Breadcrumb>
       <div>
         <div className="relative w-full h-64 rounded-lg overflow-hidden mb-6">
-            <Image
-                src={note.image}
-                alt={note.title}
-                layout="fill"
-                objectFit="cover"
-                data-ai-hint={note.imageHint}
-            />
+           {note.image && (
+              <Image
+                  src={note.image}
+                  alt={note.title}
+                  layout="fill"
+                  objectFit="cover"
+                  data-ai-hint={note.imageHint}
+              />
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <h1 className="absolute bottom-6 left-6 text-4xl font-bold text-white font-headline">{note.title}</h1>
         </div>
