@@ -27,7 +27,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Paperclip, Send, Plus, CalendarIcon, Edit } from "lucide-react";
+import { Paperclip, Send, Plus, CalendarIcon, Edit, Trash2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -83,6 +83,8 @@ const initialGroups: Group[] = [
     ],
     tasks: [
       { id: 1, title: "Discuss WWI causes", status: "In Progress", assignee: "Olivia", dueDate: new Date("2024-07-15") },
+      { id: 2, title: "Prepare presentation on the Cold War", status: "To Do", assignee: "You", dueDate: new Date("2024-07-22") },
+      { id: 3, title: "Read about the French Revolution", status: "To Do", assignee: "Liam", dueDate: new Date("2024-07-29") },
     ],
     chat: [
       { user: "Olivia", message: "Who's ready to dive into the Treaty of Versailles?", avatar: "/avatar-olivia.png", avatarHint: "woman smiling", timestamp: "10:00 AM" },
@@ -97,6 +99,8 @@ const initialGroups: Group[] = [
     members: [{ name: "You", avatar: "/profile.png", avatarHint: "your profile picture" }, { name: "Noah", avatar: "/avatar-noah.png", avatarHint: "man with glasses" }, { name: "Emma", avatar: "/avatar-emma.png", avatarHint: "woman with glasses" }],
     tasks: [
       { id: 1, title: "Review cell structure", status: "To Do", assignee: "Noah", dueDate: new Date("2024-07-18") },
+      { id: 2, title: "Create flashcards for genetics terms", status: "In Progress", assignee: "Emma", dueDate: new Date("2024-07-25") },
+      { id: 3, title: "Summarize chapter on evolution", status: "To Do", assignee: "You", dueDate: new Date("2024-08-01") },
     ],
     chat: [
       { user: "Noah", message: "Let's meet up to go over the mitochondria's function.", avatar: "/avatar-noah.png", avatarHint: "man with glasses", timestamp: "11:30 AM" },
@@ -111,6 +115,8 @@ const initialGroups: Group[] = [
     members: [{ name: "You", avatar: "/profile.png", avatarHint: "your profile picture" }, { name: "Liam", avatar: "/avatar-liam.png", avatarHint: "man thinking" }],
     tasks: [
         { id: 1, title: "Solve derivative problems", status: "Completed", assignee: "Liam", dueDate: new Date("2024-07-12") },
+        { id: 2, title: "Practice integration techniques", status: "In Progress", assignee: "You", dueDate: new Date("2024-07-19") },
+        { id: 3, title: "Complete linear algebra worksheet", status: "To Do", assignee: "Liam", dueDate: new Date("2024-07-26") },
     ],
     chat: [
       { user: "Liam", message: "Finished the problem set!", avatar: "/avatar-liam.png", avatarHint: "man thinking", timestamp: "01:00 PM" },
@@ -181,6 +187,19 @@ export default function GroupsPage() {
     setIsTaskDialogOpen(false);
     setNewTaskDetails({ title: "", assignee: "", dueDate: new Date() }); // Reset form
   };
+  
+  const handleDeleteTask = (taskId: number) => {
+    setGroups(groups.map(group => {
+      if (group.id === selectedGroupId) {
+        return {
+          ...group,
+          tasks: group.tasks.filter(task => task.id !== taskId)
+        };
+      }
+      return group;
+    }));
+  };
+
 
   const handleCreateNewGroup = () => {
     if (!newGroupName.trim()) {
@@ -352,6 +371,7 @@ export default function GroupsPage() {
                                     <TableHead>Status</TableHead>
                                     <TableHead>Assignee</TableHead>
                                     <TableHead>Due Date</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -404,6 +424,11 @@ export default function GroupsPage() {
                                                 />
                                             </PopoverContent>
                                         </Popover>
+                                    </TableCell>
+                                     <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteTask(task.id)}>
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                                 ))}
@@ -553,5 +578,3 @@ export default function GroupsPage() {
     </div>
   );
 }
-
-    
