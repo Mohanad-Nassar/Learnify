@@ -23,54 +23,70 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 
-
-const initialNotes = [
-  { 
-    id: 1, 
-    title: "Calculus Notes", 
-    content: "Comprehensive notes on calculus, covering limits, derivatives, and integrals.", 
-    subject: "Calculus",
-    image: "https://placehold.co/300x200",
-    imageHint: "mathematics graph",
-    chapters: [{id: 1, title: "Chapter 1: Limits"}, {id: 2, title: "Chapter 2: Derivatives"}]
-  },
-  { 
-    id: 2, 
-    title: "Biology Notes", 
-    content: "Detailed notes on cell biology, genetics, and evolution.", 
-    subject: "Biology",
-    image: "https://placehold.co/300x201",
-    imageHint: "biology book",
-    chapters: []
-  },
-  { 
-    id: 3, 
-    title: "World War II Notes", 
-    content: "Key events, causes, and consequences of World War II.", 
-    subject: "World History",
-    image: "https://placehold.co/301x200",
-    imageHint: "history book",
-    chapters: []
-  },
-  { 
-    id: 4, 
-    title: "Algebra Notes", 
-    content: "Notes on linear equations, quadratic equations, and polynomials.", 
-    subject: "Calculus", // Changed to show filtering effect
-    image: "https://placehold.co/300x202",
-    imageHint: "algebra textbook",
-    chapters: []
-  },
-   { 
-    id: 5, 
-    title: "Physics Notes", 
-    content: "Notes on mechanics and thermodynamics.", 
-    subject: "Physics",
-    image: "https://placehold.co/302x200",
-    imageHint: "physics experiment",
-    chapters: []
-  },
-];
+// This is a temporary data store. In a real app, this would come from a database.
+// To ensure data consistency across pages, we'll use a mock singleton pattern.
+const getInitialNotes = () => {
+    if (typeof window !== 'undefined' && !(window as any).__initialNotes) {
+        (window as any).__initialNotes = [
+          { 
+            id: 1, 
+            title: "Calculus Notes", 
+            content: "Comprehensive notes on calculus, covering limits, derivatives, and integrals.", 
+            subject: "Calculus",
+            image: "https://placehold.co/300x200",
+            imageHint: "mathematics graph",
+            chapters: [
+                {
+                    id: 1, 
+                    title: "Chapter 1: Limits", 
+                    sections: [
+                        {id: 1, title: "Introduction to Limits", content: "This section introduces the concept of limits."},
+                        {id: 2, title: "Limit Laws", content: "This section covers the basic laws for evaluating limits."},
+                    ]
+                }, 
+                {id: 2, title: "Chapter 2: Derivatives", sections: []}
+            ]
+          },
+          { 
+            id: 2, 
+            title: "Biology Notes", 
+            content: "Detailed notes on cell biology, genetics, and evolution.", 
+            subject: "Biology",
+            image: "https://placehold.co/300x201",
+            imageHint: "biology book",
+            chapters: []
+          },
+          { 
+            id: 3, 
+            title: "World War II Notes", 
+            content: "Key events, causes, and consequences of World War II.", 
+            subject: "World History",
+            image: "https://placehold.co/301x200",
+            imageHint: "history book",
+            chapters: []
+          },
+          { 
+            id: 4, 
+            title: "Algebra Notes", 
+            content: "Notes on linear equations, quadratic equations, and polynomials.", 
+            subject: "Calculus", // Changed to show filtering effect
+            image: "https://placehold.co/300x202",
+            imageHint: "algebra textbook",
+            chapters: []
+          },
+           { 
+            id: 5, 
+            title: "Physics Notes", 
+            content: "Notes on mechanics and thermodynamics.", 
+            subject: "Physics",
+            image: "https://placehold.co/302x200",
+            imageHint: "physics experiment",
+            chapters: []
+          },
+        ];
+    }
+    return (typeof window !== 'undefined' && (window as any).__initialNotes) || [];
+};
 
 const placeholderImages = [
   "https://placehold.co/300x200",
@@ -84,12 +100,19 @@ const placeholderImages = [
 
 export default function NotesPage() {
   const { subjects } = useContext(SubjectContext);
-  const [notes, setNotes] = useState(initialNotes);
+  const [notes, setNotes] = useState(getInitialNotes());
   const [activeFilter, setActiveFilter] = useState("All");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState<typeof initialNotes[0] | null>(null);
+  const [editingNote, setEditingNote] = useState<typeof notes[0] | null>(null);
   const [newNoteDetails, setNewNoteDetails] = useState({ title: "", content: "", subject: "" });
+
+  const updateGlobalNotes = (newNotes: any[]) => {
+      setNotes(newNotes);
+      if (typeof window !== 'undefined') {
+          (window as any).__initialNotes = newNotes;
+      }
+  }
 
   const getCategoryForNote = (noteSubject: string) => {
     const subject = subjects.find(s => s.name === noteSubject);
@@ -127,12 +150,12 @@ export default function NotesPage() {
       imageHint: "new note placeholder",
       chapters: []
     };
-    setNotes([...notes, newNote]);
+    updateGlobalNotes([...notes, newNote]);
     setIsAddDialogOpen(false);
     setNewNoteDetails({ title: "", content: "", subject: "" });
   };
   
-  const handleOpenEditDialog = (e: React.MouseEvent, note: typeof initialNotes[0]) => {
+  const handleOpenEditDialog = (e: React.MouseEvent, note: typeof notes[0]) => {
     e.preventDefault();
     e.stopPropagation();
     setEditingNote(note);
@@ -141,7 +164,7 @@ export default function NotesPage() {
   
   const handleSaveNote = () => {
     if (!editingNote) return;
-    setNotes(notes.map(n => n.id === editingNote.id ? editingNote : n));
+    updateGlobalNotes(notes.map(n => n.id === editingNote.id ? editingNote : n));
     setIsEditDialogOpen(false);
     setEditingNote(null);
   }
