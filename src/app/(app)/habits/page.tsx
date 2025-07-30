@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -15,37 +15,47 @@ import { Label } from "@/components/ui/label"
 type Habit = {
   id: number;
   title: string;
-  icon: React.ElementType;
+  iconName: string; // Store icon name instead of component
   goal: string;
   days: boolean[];
 };
+
+const getIcon = (name: string): React.ElementType => {
+    switch (name) {
+        case 'BookOpen': return BookOpen;
+        case 'Dumbbell': return Dumbbell;
+        case 'Repeat': return Repeat;
+        case 'Target': return Target;
+        default: return Target;
+    }
+}
 
 const initialHabits: Habit[] = [
   {
     id: 1,
     title: "Read for 30 minutes",
-    icon: BookOpen,
+    iconName: "BookOpen",
     goal: "Daily",
     days: [true, true, true, true, false, true, false],
   },
   {
     id: 2,
     title: "Morning workout",
-    icon: Dumbbell,
+    iconName: "Dumbbell",
     goal: "5 times a week",
     days: [true, false, true, true, false, true, true],
   },
   {
     id: 3,
     title: "Review Spanish flashcards",
-    icon: Repeat,
+    iconName: "Repeat",
     goal: "Daily",
     days: [true, false, true, false, true, false, false],
   },
   {
     id: 4,
     title: "Work on side project",
-    icon: Target,
+    iconName: "Target",
     goal: "3 times a week",
     days: [false, true, false, false, true, false, false],
   },
@@ -60,10 +70,31 @@ const calculateProgress = (days: boolean[]) => {
 
 
 export default function HabitsPage() {
-    const [habits, setHabits] = useState<Habit[]>(initialHabits);
+    const [habits, setHabits] = useState<Habit[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
     const [habitDetails, setHabitDetails] = useState({ title: "", goal: "" });
+
+    useEffect(() => {
+        try {
+            const storedHabits = localStorage.getItem('learnify-habits');
+            if (storedHabits) {
+                setHabits(JSON.parse(storedHabits).map((h: any) => ({...h, icon: getIcon(h.iconName)})));
+            } else {
+                setHabits(initialHabits);
+            }
+        } catch (error) {
+            console.error("Failed to parse habits from localStorage", error);
+            setHabits(initialHabits);
+        }
+    }, []);
+
+    useEffect(() => {
+        if(habits.length > 0) {
+            localStorage.setItem('learnify-habits', JSON.stringify(habits));
+        }
+    }, [habits]);
+
 
     const handleOpenDialog = (habit: Habit | null) => {
         if (habit) {
@@ -95,7 +126,7 @@ export default function HabitsPage() {
                 id: habits.length > 0 ? Math.max(...habits.map(h => h.id)) + 1 : 1,
                 title: habitDetails.title,
                 goal: habitDetails.goal,
-                icon: Target, // Default icon for new habits
+                iconName: 'Target', // Default icon for new habits
                 days: Array(7).fill(false),
             };
             setHabits([...habits, newHabit]);
@@ -132,7 +163,7 @@ export default function HabitsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {habits.map((habit) => {
-          const Icon = habit.icon;
+          const Icon = getIcon(habit.iconName);
           const progress = calculateProgress(habit.days);
           return(
           <Card key={habit.id} className="shadow-md">
@@ -227,5 +258,4 @@ export default function HabitsPage() {
         </Dialog>
     </div>
   )
-
-    
+}
