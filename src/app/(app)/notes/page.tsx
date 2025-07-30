@@ -14,7 +14,7 @@ const initialNotes = [
     id: 1, 
     title: "Calculus Notes", 
     content: "Comprehensive notes on calculus, covering limits, derivatives, and integrals.", 
-    subject: "Math",
+    subject: "Calculus",
     image: "https://placehold.co/300x200",
     imageHint: "mathematics graph"
   },
@@ -22,7 +22,7 @@ const initialNotes = [
     id: 2, 
     title: "Biology Notes", 
     content: "Detailed notes on cell biology, genetics, and evolution.", 
-    subject: "Science",
+    subject: "Biology",
     image: "https://placehold.co/300x200",
     imageHint: "biology book"
   },
@@ -30,7 +30,7 @@ const initialNotes = [
     id: 3, 
     title: "World War II Notes", 
     content: "Key events, causes, and consequences of World War II.", 
-    subject: "History",
+    subject: "World History",
     image: "https://placehold.co/300x200",
     imageHint: "history book"
   },
@@ -38,9 +38,17 @@ const initialNotes = [
     id: 4, 
     title: "Algebra Notes", 
     content: "Notes on linear equations, quadratic equations, and polynomials.", 
-    subject: "Math",
+    subject: "Calculus", // Changed to show filtering effect
     image: "https://placehold.co/300x200",
     imageHint: "algebra textbook"
+  },
+   { 
+    id: 5, 
+    title: "Physics Notes", 
+    content: "Notes on mechanics and thermodynamics.", 
+    subject: "Physics",
+    image: "https://placehold.co/300x200",
+    imageHint: "physics experiment"
   },
 ];
 
@@ -58,8 +66,12 @@ export default function NotesPage() {
     if (activeFilter === "All") {
       return initialNotes;
     }
-    const subjectNames = subjects.filter(s => s.category === activeFilter).map(s => s.name);
-    return initialNotes.filter(note => subjectNames.includes(note.subject) || note.subject === activeFilter);
+    // Get the names of subjects that belong to the active category filter
+    const subjectNamesInCategory = subjects
+      .filter(s => s.category === activeFilter)
+      .map(s => s.name);
+      
+    return initialNotes.filter(note => subjectNamesInCategory.includes(note.subject));
   }, [activeFilter, subjects]);
   
   const getCategoryForNote = (noteSubject: string) => {
@@ -97,28 +109,35 @@ export default function NotesPage() {
       </div>
 
       <div className="space-y-6">
-        {filteredNotes.map((note) => (
-          <Card key={note.id} className="overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
-            <div className="grid grid-cols-1 md:grid-cols-3">
-              <div className="md:col-span-2">
-                <CardContent className="p-6">
-                  <p className="text-sm font-semibold text-muted-foreground">{getCategoryForNote(note.subject)}</p>
-                  <h2 className="text-xl font-bold mt-1 mb-2">{note.title}</h2>
-                  <p className="text-muted-foreground">{note.content}</p>
-                </CardContent>
+        {filteredNotes.length > 0 ? (
+          filteredNotes.map((note) => (
+            <Card key={note.id} className="overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
+              <div className="grid grid-cols-1 md:grid-cols-3">
+                <div className="md:col-span-2">
+                  <CardContent className="p-6">
+                    <p className="text-sm font-semibold text-primary">{getCategoryForNote(note.subject)}</p>
+                    <h2 className="text-xl font-bold mt-1 mb-2">{note.title}</h2>
+                    <p className="text-muted-foreground">{note.content}</p>
+                  </CardContent>
+                </div>
+                <div className="relative h-40 md:h-full">
+                  <Image
+                    src={note.image}
+                    alt={note.title}
+                    layout="fill"
+                    objectFit="cover"
+                    data-ai-hint={note.imageHint}
+                  />
+                </div>
               </div>
-              <div className="relative h-40 md:h-full">
-                <Image
-                  src={note.image}
-                  alt={note.title}
-                  layout="fill"
-                  objectFit="cover"
-                  data-ai-hint={note.imageHint}
-                />
-              </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          ))
+        ) : (
+          <div className="text-center text-muted-foreground py-10">
+            <p>No notes found for this category.</p>
+            <p className="text-sm">Try adding some notes or changing the filter.</p>
+          </div>
+        )}
       </div>
     </div>
   )
