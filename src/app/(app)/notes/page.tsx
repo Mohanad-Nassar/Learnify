@@ -317,7 +317,7 @@ export default function NotesPage() {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-4xl mx-auto">
         {filteredNotes.length > 0 ? (
           filteredNotes.map((note) => {
             const category = getCategoryForNote(note.subject);
