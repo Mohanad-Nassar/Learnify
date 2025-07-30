@@ -74,7 +74,7 @@ const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const calculateProgress = (days: boolean[], goal: number) => {
     const completedDays = days.filter(Boolean).length;
-    if (goal === 0) return 0;
+    if (goal <= 0) return 0; // Prevent division by zero
     return Math.min(Math.round((completedDays / goal) * 100), 100);
 }
 
