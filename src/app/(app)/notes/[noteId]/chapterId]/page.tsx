@@ -1,19 +1,24 @@
 
 'use client'
 
-import { useState, useContext, useMemo } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Plus, Edit, Pencil } from "lucide-react"
-import Image from "next/image"
-import { cn } from "@/lib/utils"
-import { SubjectContext } from "@/context/SubjectContext"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import Link from "next/link"
+import { useState, useEffect } from 'react';
+import { useParams, usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Book, Menu, Plus, Trash2, Edit } from 'lucide-react';
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarTrigger,
+  SidebarInset,
+} from "@/components/ui/sidebar"
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -22,6 +27,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Separator } from '@/components/ui/separator';
 
 // This is a temporary data store. In a real app, this would come from a database.
 // To ensure data consistency across pages, we'll use a mock singleton pattern.
@@ -31,10 +42,7 @@ const getInitialNotes = () => {
           { 
             id: 1, 
             title: "Calculus Notes", 
-            content: "Comprehensive notes on calculus, covering limits, derivatives, and integrals.", 
             subject: "Calculus",
-            image: "/notebook-calculus.png",
-            imageHint: "mathematics graph",
             chapters: [
                 {
                     id: 1, 
@@ -65,13 +73,11 @@ const getInitialNotes = () => {
                 }
             ]
           },
-          { 
+           { 
             id: 2, 
             title: "Biology Notes", 
             content: "Detailed notes on cell biology, genetics, and evolution.", 
             subject: "Biology",
-            image: "/notebook-biology.png",
-            imageHint: "biology book",
             chapters: [
                 {
                     id: 1, 
@@ -107,8 +113,6 @@ const getInitialNotes = () => {
             title: "World War II Notes", 
             content: "Key events, causes, and consequences of World War II.", 
             subject: "World History",
-            image: "/notebook-history.png",
-            imageHint: "history book",
             chapters: [
                  {
                     id: 1, 
@@ -142,10 +146,7 @@ const getInitialNotes = () => {
           {
             id: 4,
             title: "Physics Notes",
-            content: "Notes on mechanics and thermodynamics.",
             subject: "Physics",
-            image: "/notebook-physics.png",
-            imageHint: "physics experiment",
             chapters: [
               {
                 id: 1,
@@ -181,286 +182,303 @@ const getInitialNotes = () => {
     return (typeof window !== 'undefined' && (window as any).__initialNotes) || [];
 };
 
-const placeholderImages = [
-  "/notebook-placeholder-1.png",
-  "/notebook-placeholder-2.png",
-  "/notebook-placeholder-3.png",
-  "/notebook-placeholder-4.png",
-  "/notebook-placeholder-5.png",
-  "/notebook-placeholder-6.png",
-];
+
+type Section = {
+  id: number;
+  title: string;
+  content: string;
+}
+
+type Chapter = {
+  id: number;
+  title: string;
+  sections: Section[];
+};
+
+type Note = {
+  id: number;
+  title: string;
+  chapters: Chapter[];
+};
 
 
-export default function NotesPage() {
-  const { subjects } = useContext(SubjectContext);
-  const [notes, setNotes] = useState(getInitialNotes());
-  const [activeFilter, setActiveFilter] = useState("All");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState<typeof notes[0] | null>(null);
-  const [newNoteDetails, setNewNoteDetails] = useState({ title: "", content: "", subject: "" });
+export default function ChapterPage() {
+  const router = useRouter();
+  const params = useParams();
+  const pathname = usePathname();
 
-  const updateGlobalNotes = (newNotes: any[]) => {
-      setNotes(newNotes);
-      if (typeof window !== 'undefined') {
-          (window as any).__initialNotes = newNotes;
+  const noteId = params.noteId ? parseInt(params.noteId as string, 10) : null;
+  const chapterId = params.chapterId ? parseInt(params.chapterId as string, 10) : null;
+  
+  // States for data
+  const [notes, setNotes] = useState<Note[]>(getInitialNotes());
+  const [note, setNote] = useState<Note | null>(null);
+  const [chapter, setChapter] = useState<Chapter | null>(null);
+
+  // States for UI/Dialogs
+  const [editingSection, setEditingSection] = useState<Section | null>(null);
+  const [isSectionDialogOpen, setIsSectionDialogOpen] = useState(false);
+  const [newSectionTitle, setNewSectionTitle] = useState("");
+  const [newSectionContent, setNewSectionContent] = useState("");
+  const [isChapterDialogOpen, setIsChapterDialogOpen] = useState(false);
+  const [newChapterTitle, setNewChapterTitle] = useState("");
+
+
+  useEffect(() => {
+    if (noteId !== null) {
+      const foundNote = notes.find(n => n.id === noteId);
+      if (foundNote) {
+        setNote(foundNote);
+        if (chapterId !== null) {
+          const foundChapter = foundNote.chapters.find(c => c.id === chapterId);
+          if(foundChapter) {
+            setChapter(foundChapter);
+          }
+        }
       }
-  }
-
-  const getCategoryForNote = (noteSubject: string) => {
-    const subject = subjects.find(s => s.name === noteSubject);
-    return subject ? subject.category : "General";
-  }
-
-  const categories = useMemo(() => {
-    const userCategories = Array.from(new Set(subjects.map(s => s.category)));
-    const notesWithNoCategory = notes.some(note => !subjects.some(s => s.name === note.subject));
-
-    let finalCategories = ["All", ...userCategories];
-    if (notesWithNoCategory) {
-      finalCategories.push("General");
     }
-    return finalCategories;
-  }, [notes, subjects]);
+  }, [noteId, chapterId, notes]);
 
+  const updateNoteData = (updatedNote: Note) => {
+     const newNotes = notes.map(n => n.id === updatedNote.id ? updatedNote : n);
+     setNotes(newNotes);
+     (window as any).__initialNotes = newNotes; // Update global mock store
+  };
 
-  const filteredNotes = useMemo(() => {
-    if (activeFilter === "All") {
-      return notes;
-    }
-    return notes.filter(note => getCategoryForNote(note.subject) === activeFilter);
-  }, [activeFilter, notes, subjects]);
+  const handleOpenSectionDialog = (section: Section | null) => {
+    setEditingSection(section);
+    setNewSectionTitle(section ? section.title : "");
+    setNewSectionContent(section ? section.content : "");
+    setIsSectionDialogOpen(true);
+  };
   
-  const handleAddNewNote = () => {
-    if (!newNoteDetails.title || !newNoteDetails.content || !newNoteDetails.subject) {
-      alert("Please fill out all fields.");
-      return;
+  const handleCloseSectionDialog = () => {
+    setEditingSection(null);
+    setNewSectionTitle("");
+    setNewSectionContent("");
+    setIsSectionDialogOpen(false);
+  }
+
+  const handleSaveSection = () => {
+    if (!newSectionTitle || !note || !chapter) return;
+
+    let updatedSections;
+    if (editingSection) {
+      // Editing existing section
+      updatedSections = chapter.sections.map(sec => 
+        sec.id === editingSection.id ? { ...sec, title: newSectionTitle, content: newSectionContent } : sec
+      );
+    } else {
+      // Adding new section
+      const newSection: Section = {
+        id: chapter.sections.length > 0 ? Math.max(...chapter.sections.map(c => c.id)) + 1 : 1,
+        title: newSectionTitle,
+        content: newSectionContent,
+      };
+      updatedSections = [...chapter.sections, newSection];
     }
-    const newNote = {
-      id: Date.now(),
-      ...newNoteDetails,
-      image: "/notebook-new.png",
-      imageHint: "new note placeholder",
-      chapters: []
+    
+    const updatedChapter = { ...chapter, sections: updatedSections };
+    const updatedNote = { ...note, chapters: note.chapters.map(c => c.id === chapterId ? updatedChapter : c)};
+    updateNoteData(updatedNote);
+    
+    handleCloseSectionDialog();
+  };
+  
+  const handleDeleteSection = (sectionId: number) => {
+    if(!note || !chapter) return;
+    const updatedSections = chapter.sections.filter(sec => sec.id !== sectionId);
+    const updatedChapter = { ...chapter, sections: updatedSections };
+    const updatedNote = { ...note, chapters: note.chapters.map(c => c.id === chapterId ? updatedChapter : c)};
+    updateNoteData(updatedNote);
+  }
+  
+  const handleSaveChapter = () => {
+    if (!newChapterTitle.trim() || !note) return;
+
+    const newChapter: Chapter = {
+      id: note.chapters.length > 0 ? Math.max(...note.chapters.map(c => c.id)) + 1 : 1,
+      title: newChapterTitle,
+      sections: [],
     };
-    updateGlobalNotes([...notes, newNote]);
-    setIsAddDialogOpen(false);
-    setNewNoteDetails({ title: "", content: "", subject: "" });
-  };
-  
-  const handleOpenEditDialog = (e: React.MouseEvent, note: typeof notes[0]) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setEditingNote(note);
-    setIsEditDialogOpen(true);
-  };
-  
-  const handleSaveNote = () => {
-    if (!editingNote) return;
-    updateGlobalNotes(notes.map(n => n.id === editingNote.id ? editingNote : n));
-    setIsEditDialogOpen(false);
-    setEditingNote(null);
+    
+    const updatedNote = { ...note, chapters: [...note.chapters, newChapter] };
+    updateNoteData(updatedNote);
+    
+    setNewChapterTitle("");
+    setIsChapterDialogOpen(false);
+    
+    // Navigate to the new chapter
+    router.push(`/notes/${note.id}/${newChapter.id}`);
   }
-  
-  const handleChangeImage = () => {
-    if (!editingNote) return;
-    const currentImageIndex = placeholderImages.indexOf(editingNote.image);
-    const nextImageIndex = (currentImageIndex + 1) % placeholderImages.length;
-    setEditingNote({ ...editingNote, image: placeholderImages[nextImageIndex] });
+
+  if (!note || !chapter) {
+    return (
+        <div className="flex flex-col items-center justify-center h-full text-center">
+            <p className="text-muted-foreground">Chapter not found.</p>
+            <Button variant="link" asChild><Link href={`/notes/${noteId}`}>Go back to notebook</Link></Button>
+        </div>
+    );
   }
 
   return (
-    <div className="space-y-8">
-       <Breadcrumb>
-        <BreadcrumbList>
-            <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-                <Link href="/dashboard">Dashboard</Link>
-            </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-            <BreadcrumbPage>Notes</BreadcrumbPage>
-            </BreadcrumbItem>
-        </BreadcrumbList>
-        </Breadcrumb>
-
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold font-headline">Note Keeper</h1>
-        <Button variant="outline" onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Add Note
-        </Button>
-      </div>
-
-      <div>
-        <div className="flex items-center space-x-2 border-b">
-          {categories.map((category) => (
-            <Button
-              key={category}
-              variant="ghost"
-              onClick={() => setActiveFilter(category)}
-              className={cn(
-                "rounded-none font-semibold",
-                activeFilter === category
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground"
-              )}
-            >
-              {category}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-6">
-        {filteredNotes.length > 0 ? (
-          filteredNotes.map((note) => (
-             <Link href={`/notes/${note.id}`} key={note.id} className="block group/note">
-                <Card className="overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
-                  <div className="grid grid-cols-1 md:grid-cols-3">
-                    <div className="md:col-span-2">
-                      <CardContent className="p-6">
-                        <p className="text-sm font-semibold text-primary">{getCategoryForNote(note.subject)}</p>
-                        <h2 className="text-xl font-bold mt-1 mb-2">{note.title}</h2>
-                        <p className="text-muted-foreground">{note.content}</p>
-                      </CardContent>
-                    </div>
-                    <div className="relative h-40 md:h-full">
-                      <Image
-                        src={note.image}
-                        alt={note.title}
-                        layout="fill"
-                        objectFit="cover"
-                        data-ai-hint={note.imageHint}
-                      />
-                      <Button 
-                        variant="secondary"
-                        size="icon"
-                        className="absolute top-2 right-2 opacity-0 group-hover/note:opacity-100 transition-opacity z-10"
-                        onClick={(e) => handleOpenEditDialog(e, note)}
-                      >
-                        <Pencil className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-            </Link>
-          ))
-        ) : (
-          <div className="text-center text-muted-foreground py-10">
-            <p>No notes found for this category.</p>
-            <p className="text-sm">Try adding some notes or changing the filter.</p>
-          </div>
-        )}
-      </div>
-
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add a new note</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="note-title">Note Title</Label>
-              <Input
-                id="note-title"
-                value={newNoteDetails.title}
-                onChange={(e) => setNewNoteDetails({ ...newNoteDetails, title: e.target.value })}
-                placeholder="e.g. My Awesome Note"
-              />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="note-content">Content</Label>
-              <Textarea
-                id="note-content"
-                value={newNoteDetails.content}
-                onChange={(e) => setNewNoteDetails({ ...newNoteDetails, content: e.target.value })}
-                placeholder="Start writing your note here..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="note-subject">Subject</Label>
-              <Select
-                value={newNoteDetails.subject}
-                onValueChange={(value) => setNewNoteDetails({ ...newNoteDetails, subject: value })}
-              >
-                <SelectTrigger id="note-subject">
-                  <SelectValue placeholder="Select a subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.name}>{subject.name}</SelectItem>
-                  ))}
-                   <SelectItem value="General">General</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddNewNote}>Add Note</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Note</DialogTitle>
-          </DialogHeader>
-          {editingNote && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-note-title">Note Title</Label>
-                <Input
-                  id="edit-note-title"
-                  value={editingNote.title}
-                  onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
-                />
+    <SidebarProvider>
+        <Sidebar collapsible="icon" className="h-screen sticky top-0">
+          <SidebarContent className="p-2 flex flex-col">
+            <SidebarHeader>
+              <div className="p-2 group-data-[collapsible=icon]:hidden">
+                <p className="font-semibold text-lg">{note.title}</p>
+                <p className="text-sm text-muted-foreground">Chapters</p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-note-content">Content</Label>
-                <Textarea
-                  id="edit-note-content"
-                  value={editingNote.content}
-                  onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-              <Label htmlFor="edit-note-subject">Subject</Label>
-              <Select
-                value={editingNote.subject}
-                onValueChange={(value) => setEditingNote({ ...editingNote, subject: value })}
-              >
-                <SelectTrigger id="edit-note-subject">
-                  <SelectValue placeholder="Select a subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.name}>{subject.name}</SelectItem>
-                  ))}
-                   <SelectItem value="General">General</SelectItem>
-                </SelectContent>
-              </Select>
+            </SidebarHeader>
+            <SidebarMenu className="flex-1">
+              {note.chapters.map((chap) => (
+                <SidebarMenuItem key={chap.id}>
+                    <Link href={`/notes/${note.id}/${chap.id}`} className="w-full">
+                        <SidebarMenuButton tooltip={chap.title} isActive={pathname === `/notes/${note.id}/${chap.id}`}>
+                            <Book />
+                            <span>{chap.title}</span>
+                        </SidebarMenuButton>
+                    </Link>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+             <div className="p-2 mt-auto">
+                <Button variant="outline" className="w-full group-data-[collapsible=icon]:hidden" onClick={() => setIsChapterDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Chapter
+                </Button>
+                 <Button variant="outline" size="icon" className="hidden group-data-[collapsible=icon]:block" onClick={() => setIsChapterDialogOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                </Button>
             </div>
-              <div className="space-y-2">
-                <Label>Image</Label>
-                <div className="flex items-center gap-4">
-                    <Image src={editingNote.image} alt="Note image" width={100} height={66} className="rounded-md" />
-                    <Button variant="outline" onClick={handleChangeImage}>Change Image</Button>
+          </SidebarContent>
+        </Sidebar>
+
+        <SidebarInset className="p-4">
+            <div className="flex items-center gap-4 mb-4">
+                <SidebarTrigger className="md:hidden" />
+                 <Breadcrumb>
+                    <BreadcrumbList>
+                        <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                            <Link href="/dashboard">Dashboard</Link>
+                        </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                         <BreadcrumbLink asChild>
+                            <Link href="/notes">Notes</Link>
+                         </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                         <BreadcrumbItem>
+                         <BreadcrumbLink asChild>
+                            <Link href={`/notes/${noteId}`}>{note.title}</Link>
+                         </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                        <BreadcrumbPage>{chapter.title}</BreadcrumbPage>
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
+            </div>
+            
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-3xl font-bold">{chapter.title}</h1>
+                    <Button onClick={() => handleOpenSectionDialog(null)}>
+                        <Plus className="mr-2 h-4 w-4" /> Add Section
+                    </Button>
                 </div>
-              </div>
+                
+                {chapter.sections.length > 0 ? (
+                    chapter.sections.map(section => (
+                        <Card key={section.id} className="shadow-md">
+                            <CardContent className="p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-xl font-semibold">{section.title}</h2>
+                                    <div className="flex items-center space-x-2">
+                                        <Button variant="ghost" size="icon" onClick={() => handleOpenSectionDialog(section)}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteSection(section.id)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div className="prose prose-lg dark:prose-invert max-w-none">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        {section.content || 'No content yet.'}
+                                    </ReactMarkdown>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                ) : (
+                    <p className="text-center text-muted-foreground py-10">This chapter has no sections yet.</p>
+                )}
             </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveNote}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-    </div>
-  )
+        </SidebarInset>
+
+        <Dialog open={isSectionDialogOpen} onOpenChange={setIsSectionDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{editingSection ? 'Edit Section' : 'Add New Section'}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="section-title">Section Title</Label>
+                        <Input
+                            id="section-title"
+                            value={newSectionTitle}
+                            onChange={(e) => setNewSectionTitle(e.target.value)}
+                            placeholder="e.g., Introduction to Limits"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="section-content">Content (Markdown)</Label>
+                        <Textarea
+                            id="section-content"
+                            value={newSectionContent}
+                            onChange={(e) => setNewSectionContent(e.target.value)}
+                            placeholder="Write your section content here..."
+                            rows={10}
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={handleCloseSectionDialog}>Cancel</Button>
+                    <Button onClick={handleSaveSection}>Save Section</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isChapterDialogOpen} onOpenChange={setIsChapterDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add a new chapter</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                    <Label htmlFor="chapter-title">Chapter Title</Label>
+                    <Input
+                        id="chapter-title"
+                        value={newChapterTitle}
+                        onChange={(e) => setNewChapterTitle(e.target.value)}
+                        placeholder="e.g. Introduction to Derivatives"
+                    />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsChapterDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleSaveChapter}>Add Chapter</Button>
+                </DialogFooter>
+            </DialogContent>
+      </Dialog>
+    </SidebarProvider>
+  );
 }
 
     

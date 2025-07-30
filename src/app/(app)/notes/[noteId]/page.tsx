@@ -30,7 +30,7 @@ const getInitialNotes = () => {
             title: "Calculus Notes", 
             content: "Comprehensive notes on calculus, covering limits, derivatives, and integrals.", 
             subject: "Calculus",
-            image: "https://placehold.co/300x200",
+            image: "/notebook-calculus.png",
             imageHint: "mathematics graph",
             chapters: [
                 {
@@ -67,7 +67,7 @@ const getInitialNotes = () => {
             title: "Biology Notes", 
             content: "Detailed notes on cell biology, genetics, and evolution.", 
             subject: "Biology",
-            image: "https://placehold.co/300x201",
+            image: "/notebook-biology.png",
             imageHint: "biology book",
             chapters: [
                 {
@@ -104,7 +104,7 @@ const getInitialNotes = () => {
             title: "World War II Notes", 
             content: "Key events, causes, and consequences of World War II.", 
             subject: "World History",
-            image: "https://placehold.co/301x200",
+            image: "/notebook-history.png",
             imageHint: "history book",
             chapters: [
                  {
@@ -141,7 +141,7 @@ const getInitialNotes = () => {
             title: "Physics Notes",
             content: "Notes on mechanics and thermodynamics.",
             subject: "Physics",
-            image: "https://placehold.co/302x200",
+            image: "/notebook-physics.png",
             imageHint: "physics experiment",
             chapters: [
               {
@@ -368,3 +368,5 @@ export default function NoteDetailPage() {
     </div>
   );
 }
+
+    

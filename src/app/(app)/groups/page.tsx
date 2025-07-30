@@ -30,6 +30,7 @@ import { Paperclip, Send, Plus, CalendarIcon, Edit } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import Image from "next/image";
 
 type Member = {
   name: string;
@@ -72,12 +73,12 @@ const initialGroups: Group[] = [
     id: 1,
     name: "Study Group",
     membersCount: 3,
-    image: "https://placehold.co/100x100",
+    image: "/group-study.png",
     imageHint: "people studying",
     members: [
       { name: "You", avatar: "/profile.png", avatarHint: "your profile picture" },
-      { name: "Olivia", avatar: "https://placehold.co/40x40", avatarHint: "woman smiling" },
-      { name: "Liam", avatar: "https://placehold.co/40x40", avatarHint: "man thinking" },
+      { name: "Olivia", avatar: "/avatar-olivia.png", avatarHint: "woman smiling" },
+      { name: "Liam", avatar: "/avatar-liam.png", avatarHint: "man thinking" },
     ],
     tasks: [
       { id: 1, title: "Prepare presentation", status: "In Progress", assignee: "Olivia", dueDate: new Date("2024-07-15") },
@@ -85,17 +86,17 @@ const initialGroups: Group[] = [
       { id: 3, title: "Review notes", status: "To Do", assignee: "You", dueDate: new Date("2024-07-20") },
     ],
     chat: [
-      { user: "Olivia", message: "Hey everyone, let's schedule a meeting to discuss the presentation.", avatar: "https://placehold.co/40x40", avatarHint: "woman smiling", timestamp: "10:00 AM" },
-      { user: "Liam", message: "Sounds good, Olivia. How about tomorrow afternoon?", avatar: "https://placehold.co/40x40", avatarHint: "man thinking", timestamp: "10:15 AM" },
+      { user: "Olivia", message: "Hey everyone, let's schedule a meeting to discuss the presentation.", avatar: "/avatar-olivia.png", avatarHint: "woman smiling", timestamp: "10:00 AM" },
+      { user: "Liam", message: "Sounds good, Olivia. How about tomorrow afternoon?", avatar: "/avatar-liam.png", avatarHint: "man thinking", timestamp: "10:15 AM" },
     ],
   },
   {
     id: 2,
     name: "Project Team",
     membersCount: 3,
-    image: "https://placehold.co/100x100",
+    image: "/group-project.png",
     imageHint: "team collaboration",
-    members: [{ name: "You", avatar: "/profile.png", avatarHint: "your profile picture" }, { name: "Noah", avatar: "https://placehold.co/40x40", avatarHint: "man with glasses" }, { name: "Emma", avatar: "https://placehold.co/40x40", avatarHint: "woman with glasses" }],
+    members: [{ name: "You", avatar: "/profile.png", avatarHint: "your profile picture" }, { name: "Noah", avatar: "/avatar-noah.png", avatarHint: "man with glasses" }, { name: "Emma", avatar: "/avatar-emma.png", avatarHint: "woman with glasses" }],
     tasks: [],
     chat: [],
   },
@@ -103,7 +104,7 @@ const initialGroups: Group[] = [
     id: 3,
     name: "Book Club",
     membersCount: 1,
-    image: "https://placehold.co/100x100",
+    image: "/group-book-club.png",
     imageHint: "person reading",
     members: [{ name: "You", avatar: "/profile.png", avatarHint: "your profile picture" }],
     tasks: [],
@@ -184,7 +185,7 @@ export default function GroupsPage() {
       id: Date.now(),
       name: newGroupName,
       membersCount: 1,
-      image: "https://placehold.co/100x100",
+      image: "/group-new.png",
       imageHint: "new group",
       members: [{ name: "You", avatar: "/profile.png", avatarHint: "your profile picture" }],
       tasks: [],
@@ -199,10 +200,10 @@ export default function GroupsPage() {
 
   const handleChangeGroupPicture = (groupId: number) => {
     const placeholderImages = [
-      "https://placehold.co/100x100",
-      "https://placehold.co/100x101",
-      "https://placehold.co/101x100",
-      "https://placehold.co/101x101",
+      "/group-placeholder-1.png",
+      "/group-placeholder-2.png",
+      "/group-placeholder-3.png",
+      "/group-placeholder-4.png",
     ];
     setGroups(groups.map(group => {
       if (group.id === groupId) {
@@ -293,8 +294,7 @@ export default function GroupsPage() {
                     )}
                 >
                     <Avatar className="h-10 w-10">
-                        <AvatarImage src={group.image} data-ai-hint={group.imageHint} />
-                        <AvatarFallback>{group.name.charAt(0)}</AvatarFallback>
+                        <Image src={group.image} alt={group.name} width={40} height={40} data-ai-hint={group.imageHint} />
                     </Avatar>
                     <div>
                     <p className="font-semibold">{group.name}</p>
@@ -323,8 +323,7 @@ export default function GroupsPage() {
                 <div className="flex -space-x-2">
                   {selectedGroup.members.map((member) => (
                       <Avatar key={member.name} className="h-8 w-8 border-2 border-background">
-                      <AvatarImage src={member.avatar} data-ai-hint={member.avatarHint} />
-                      <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                      <Image src={member.avatar} alt={member.name} width={32} height={32} data-ai-hint={member.avatarHint} />
                       </Avatar>
                   ))}
                 </div>
@@ -416,8 +415,7 @@ export default function GroupsPage() {
                         {selectedGroup.chat.map((msg, index) => (
                             <div key={index} className="flex items-start gap-3 mb-4">
                                 <Avatar className="h-8 w-8">
-                                    <AvatarImage src={msg.avatar} data-ai-hint={msg.avatarHint} />
-                                    <AvatarFallback>{msg.user.charAt(0)}</AvatarFallback>
+                                    <Image src={msg.avatar} alt={msg.user} width={32} height={32} data-ai-hint={msg.avatarHint} />
                                 </Avatar>
                                 <div>
                                     <div className="flex items-baseline gap-2">
@@ -549,3 +547,5 @@ export default function GroupsPage() {
     </div>
   );
 }
+
+    

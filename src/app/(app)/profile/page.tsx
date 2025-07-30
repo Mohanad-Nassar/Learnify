@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useContext } from "react"
@@ -11,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Book, Plus, Trash2 } from "lucide-react"
 import { SubjectContext } from "@/context/SubjectContext"
+import Image from "next/image"
 
 export default function ProfilePage() {
   const { setTheme, theme } = useTheme()
@@ -40,8 +42,7 @@ export default function ProfilePage() {
 
       <div className="flex flex-col items-center">
         <Avatar className="h-24 w-24 mx-auto mb-2">
-          <AvatarImage src="/profile.png" alt="Alex Doe" data-ai-hint="palestinian girl" />
-          <AvatarFallback>U</AvatarFallback>
+          <Image src="/profile.png" alt="Alex Doe" width={96} height={96} data-ai-hint="palestinian girl" />
         </Avatar>
         <h2 className="text-xl font-semibold">Alex Doe</h2>
         <p className="text-sm text-muted-foreground">Student</p>
@@ -145,3 +146,5 @@ export default function ProfilePage() {
     </div>
   )
 }
+
+    

@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -14,6 +15,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Menu } from 'lucide-react';
+import Image from 'next/image';
 
 
 export default function AppNav() {
@@ -49,8 +51,7 @@ export default function AppNav() {
           </Button>
           <Link href="/profile" className="hidden md:block">
             <Avatar className="h-9 w-9">
-              <AvatarImage src="/profile.png" alt="User" data-ai-hint="palestinian girl" />
-              <AvatarFallback>U</AvatarFallback>
+              <Image src="/profile.png" alt="User" width={36} height={36} data-ai-hint="palestinian girl" />
             </Avatar>
           </Link>
            <Sheet open={open} onOpenChange={setOpen}>
@@ -93,8 +94,7 @@ export default function AppNav() {
                     )}
                   >
                     <Avatar className="h-5 w-5">
-                        <AvatarImage src="/profile.png" alt="User" data-ai-hint="palestinian girl" />
-                        <AvatarFallback>U</AvatarFallback>
+                        <Image src="/profile.png" alt="User" width={20} height={20} data-ai-hint="palestinian girl" />
                     </Avatar>
                     Profile
                   </Link>
@@ -106,3 +106,5 @@ export default function AppNav() {
     </header>
   );
 }
+
+    
