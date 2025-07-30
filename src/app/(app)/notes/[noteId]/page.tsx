@@ -11,6 +11,14 @@ import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 
 // This is a temporary solution for passing data between pages.
 // In a real app, you would fetch this from a server or use a global state manager.
@@ -119,11 +127,27 @@ export default function NoteDetailPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+       <Breadcrumb>
+        <BreadcrumbList>
+            <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+                <Link href="/dashboard">Dashboard</Link>
+            </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+             <BreadcrumbLink asChild>
+                <Link href="/notes">Notes</Link>
+             </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+            <BreadcrumbPage>{note.title}</BreadcrumbPage>
+            </BreadcrumbItem>
+        </BreadcrumbList>
+        </Breadcrumb>
       <div>
-        <Button variant="ghost" onClick={() => router.back()} className="mb-4">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Notes
-        </Button>
         <div className="relative w-full h-64 rounded-lg overflow-hidden mb-6">
             <Image
                 src={note.image}

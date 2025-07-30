@@ -20,6 +20,14 @@ import {
 } from "@/components/ui/sidebar"
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 
 // Temporary data store, same as in notes/page.tsx and notes/[noteId]/page.tsx
 const initialNotes = [
@@ -141,9 +149,31 @@ export default function ChapterPage() {
         <SidebarInset className="p-4">
             <div className="flex items-center gap-4 mb-4">
                 <SidebarTrigger className="md:hidden" />
-                <Button variant="ghost" onClick={() => router.push(`/notes/${noteId}`)}>
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back to Chapters
-                </Button>
+                 <Breadcrumb>
+                    <BreadcrumbList>
+                        <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                            <Link href="/dashboard">Dashboard</Link>
+                        </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                         <BreadcrumbLink asChild>
+                            <Link href="/notes">Notes</Link>
+                         </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                         <BreadcrumbItem>
+                         <BreadcrumbLink asChild>
+                            <Link href={`/notes/${noteId}`}>{note.title}</Link>
+                         </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                        <BreadcrumbPage>{chapter.title}</BreadcrumbPage>
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
             </div>
             <Card className="h-[calc(100vh-8rem)]">
                 <Card className="h-full flex flex-col">

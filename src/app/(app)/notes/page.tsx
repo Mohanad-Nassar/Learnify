@@ -14,6 +14,15 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
+
 
 const initialNotes = [
   { 
@@ -89,7 +98,6 @@ export default function NotesPage() {
 
   const categories = useMemo(() => {
     const userCategories = Array.from(new Set(subjects.map(s => s.category)));
-    const noteSubjects = new Set(notes.map(n => n.subject));
     const notesWithNoCategory = notes.some(note => !subjects.some(s => s.name === note.subject));
 
     let finalCategories = ["All", ...userCategories];
@@ -147,6 +155,20 @@ export default function NotesPage() {
 
   return (
     <div className="space-y-8">
+       <Breadcrumb>
+        <BreadcrumbList>
+            <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+                <Link href="/dashboard">Dashboard</Link>
+            </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+            <BreadcrumbPage>Notes</BreadcrumbPage>
+            </BreadcrumbItem>
+        </BreadcrumbList>
+        </Breadcrumb>
+
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-headline">Note Keeper</h1>
         <Button variant="outline" onClick={() => setIsAddDialogOpen(true)}>
