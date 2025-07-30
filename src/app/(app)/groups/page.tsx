@@ -1,5 +1,4 @@
 
-
 'use client'
 
 import { useState, useRef } from "react";
@@ -320,14 +319,10 @@ export default function GroupsPage() {
         {selectedGroup && (
           <div className="space-y-8">
              <div className="flex items-center gap-4">
-               <Input 
-                  value={selectedGroup.name}
-                  onChange={(e) => handleGroupNameChange(selectedGroup.id, e.target.value)}
-                  className="text-3xl font-bold border-0 shadow-none focus-visible:ring-0 p-0 h-auto flex-grow"
-                />
+                <h1 className="text-3xl font-bold flex-grow">{selectedGroup.name}</h1>
                 <div className="flex -space-x-2">
                   {selectedGroup.members.map((member) => (
-                    <Avatar key={member.name}>
+                    <Avatar key={member.name} className="h-8 w-8 border-2 border-background">
                       <AvatarImage src={member.avatar} data-ai-hint={member.avatarHint} />
                       <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                     </Avatar>
