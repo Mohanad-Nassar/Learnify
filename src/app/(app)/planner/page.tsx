@@ -47,7 +47,7 @@ export default function PlannerPage() {
 
   const handleDayOfWeekSelect = (dayIndex: number) => {
     const currentWeekStart = startOfWeek(selectedDate || new Date());
-    const newSelectedDate = addDays(currentWeekStart, dayIndex);
+    const newSelectedDate = setDay(currentWeekStart, dayIndex);
     setSelectedDate(newSelectedDate);
   }
 
@@ -164,9 +164,10 @@ export default function PlannerPage() {
                 </Button>
               </CardHeader>
                 <CardContent className="p-6">
-                      <ul className="space-y-4">
+                      <div className="space-y-3">
                         {filteredSessions.length > 0 ? filteredSessions.map((session) => (
-                          <li key={session.id} className="flex items-center justify-between">
+                           <Card key={session.id} className="hover:shadow-md transition-shadow duration-200">
+                           <CardContent className="p-4 flex items-center justify-between">
                             <div>
                               <p className="font-semibold">{session.time}</p>
                               <p className="text-muted-foreground">{session.subject}</p>
@@ -180,11 +181,12 @@ export default function PlannerPage() {
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>
-                          </li>
+                           </CardContent>
+                         </Card>
                         )) : (
-                          <p className="text-muted-foreground">No sessions planned for this day.</p>
+                          <p className="p-4 text-center text-muted-foreground bg-muted/50 rounded-lg">No sessions planned for this day.</p>
                         )}
-                      </ul>
+                      </div>
                 </CardContent>
             </Card>
         </div>
