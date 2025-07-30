@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { useState, useRef } from "react";
@@ -71,44 +72,49 @@ type Group = {
 const initialGroups: Group[] = [
   {
     id: 1,
-    name: "Study Group",
+    name: "History Club",
     membersCount: 3,
-    image: "/group-study.png",
-    imageHint: "people studying",
+    image: "/history-group.png",
+    imageHint: "history collage",
     members: [
       { name: "You", avatar: "/profile.png", avatarHint: "your profile picture" },
       { name: "Olivia", avatar: "/avatar-olivia.png", avatarHint: "woman smiling" },
       { name: "Liam", avatar: "/avatar-liam.png", avatarHint: "man thinking" },
     ],
     tasks: [
-      { id: 1, title: "Prepare presentation", status: "In Progress", assignee: "Olivia", dueDate: new Date("2024-07-15") },
-      { id: 2, title: "Write report", status: "Completed", assignee: "Liam", dueDate: new Date("2024-07-10") },
-      { id: 3, title: "Review notes", status: "To Do", assignee: "You", dueDate: new Date("2024-07-20") },
+      { id: 1, title: "Discuss WWI causes", status: "In Progress", assignee: "Olivia", dueDate: new Date("2024-07-15") },
     ],
     chat: [
-      { user: "Olivia", message: "Hey everyone, let's schedule a meeting to discuss the presentation.", avatar: "/avatar-olivia.png", avatarHint: "woman smiling", timestamp: "10:00 AM" },
-      { user: "Liam", message: "Sounds good, Olivia. How about tomorrow afternoon?", avatar: "/avatar-liam.png", avatarHint: "man thinking", timestamp: "10:15 AM" },
+      { user: "Olivia", message: "Who's ready to dive into the Treaty of Versailles?", avatar: "/avatar-olivia.png", avatarHint: "woman smiling", timestamp: "10:00 AM" },
     ],
   },
   {
     id: 2,
-    name: "Project Team",
+    name: "Biology Study Group",
     membersCount: 3,
-    image: "/group-project.png",
-    imageHint: "team collaboration",
+    image: "/biology-group.png",
+    imageHint: "dna helix",
     members: [{ name: "You", avatar: "/profile.png", avatarHint: "your profile picture" }, { name: "Noah", avatar: "/avatar-noah.png", avatarHint: "man with glasses" }, { name: "Emma", avatar: "/avatar-emma.png", avatarHint: "woman with glasses" }],
-    tasks: [],
-    chat: [],
+    tasks: [
+      { id: 1, title: "Review cell structure", status: "To Do", assignee: "Noah", dueDate: new Date("2024-07-18") },
+    ],
+    chat: [
+      { user: "Noah", message: "Let's meet up to go over the mitochondria's function.", avatar: "/avatar-noah.png", avatarHint: "man with glasses", timestamp: "11:30 AM" },
+    ],
   },
   {
     id: 3,
-    name: "Book Club",
-    membersCount: 1,
-    image: "/group-book-club.png",
-    imageHint: "person reading",
-    members: [{ name: "You", avatar: "/profile.png", avatarHint: "your profile picture" }],
-    tasks: [],
-    chat: [],
+    name: "Math Study Group",
+    membersCount: 2,
+    image: "/math-group.png",
+    imageHint: "fractal pattern",
+    members: [{ name: "You", avatar: "/profile.png", avatarHint: "your profile picture" }, { name: "Liam", avatar: "/avatar-liam.png", avatarHint: "man thinking" }],
+    tasks: [
+        { id: 1, title: "Solve derivative problems", status: "Completed", assignee: "Liam", dueDate: new Date("2024-07-12") },
+    ],
+    chat: [
+      { user: "Liam", message: "Finished the problem set!", avatar: "/avatar-liam.png", avatarHint: "man thinking", timestamp: "01:00 PM" },
+    ],
   },
 ];
 
