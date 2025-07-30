@@ -8,6 +8,11 @@ import { Plus } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { SubjectContext } from "@/context/SubjectContext"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const initialNotes = [
   { 
@@ -55,35 +60,54 @@ const initialNotes = [
 
 export default function NotesPage() {
   const { subjects } = useContext(SubjectContext);
+  const [notes, setNotes] = useState(initialNotes);
   const [activeFilter, setActiveFilter] = useState("All");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newNoteDetails, setNewNoteDetails] = useState({ title: "", content: "", subject: "" });
 
-  const categories = useMemo(() => {
-    const allCategories = subjects.map(s => s.category);
-    return ["All", ...Array.from(new Set(allCategories))];
-  }, [subjects]);
-
-  const filteredNotes = useMemo(() => {
-    if (activeFilter === "All") {
-      return initialNotes;
-    }
-    // Get the names of subjects that belong to the active category filter
-    const subjectNamesInCategory = subjects
-      .filter(s => s.category === activeFilter)
-      .map(s => s.name);
-      
-    return initialNotes.filter(note => subjectNamesInCategory.includes(note.subject));
-  }, [activeFilter, subjects]);
-  
   const getCategoryForNote = (noteSubject: string) => {
     const subject = subjects.find(s => s.name === noteSubject);
     return subject ? subject.category : "General";
   }
 
+  const categories = useMemo(() => {
+    const noteCategories = notes.map(note => getCategoryForNote(note.subject));
+    const subjectCategories = subjects.map(s => s.category);
+    const allCategories = [...noteCategories, ...subjectCategories];
+    const uniqueCategories = Array.from(new Set(allCategories));
+    return ["All", ...uniqueCategories];
+  }, [notes, subjects]);
+
+
+  const filteredNotes = useMemo(() => {
+    if (activeFilter === "All") {
+      return notes;
+    }
+    return notes.filter(note => getCategoryForNote(note.subject) === activeFilter);
+  }, [activeFilter, notes, subjects]);
+  
+  const handleAddNewNote = () => {
+    if (!newNoteDetails.title || !newNoteDetails.content || !newNoteDetails.subject) {
+      alert("Please fill out all fields.");
+      return;
+    }
+    const newNote = {
+      id: Date.now(),
+      ...newNoteDetails,
+      image: "https://placehold.co/300x200",
+      imageHint: "new note placeholder"
+    };
+    setNotes([...notes, newNote]);
+    setIsDialogOpen(false);
+    setNewNoteDetails({ title: "", content: "", subject: "" });
+  };
+
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-headline">Note Keeper</h1>
-        <Button variant="outline">
+        <Button variant="outline" onClick={() => setIsDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" /> Add Note
         </Button>
       </div>
@@ -139,6 +163,55 @@ export default function NotesPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add a new note</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="note-title">Note Title</Label>
+              <Input
+                id="note-title"
+                value={newNoteDetails.title}
+                onChange={(e) => setNewNoteDetails({ ...newNoteDetails, title: e.target.value })}
+                placeholder="e.g. My Awesome Note"
+              />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="note-content">Content</Label>
+              <Textarea
+                id="note-content"
+                value={newNoteDetails.content}
+                onChange={(e) => setNewNoteDetails({ ...newNoteDetails, content: e.target.value })}
+                placeholder="Start writing your note here..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="note-subject">Subject</Label>
+              <Select
+                value={newNoteDetails.subject}
+                onValueChange={(value) => setNewNoteDetails({ ...newNoteDetails, subject: value })}
+              >
+                <SelectTrigger id="note-subject">
+                  <SelectValue placeholder="Select a subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.name}>{subject.name}</SelectItem>
+                  ))}
+                   <SelectItem value="General">General</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddNewNote}>Add Note</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
