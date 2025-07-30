@@ -71,7 +71,7 @@ const initialGroups: Group[] = [
   {
     id: 1,
     name: "Study Group",
-    membersCount: 2,
+    membersCount: 3,
     image: "https://placehold.co/100x100",
     imageHint: "people studying",
     members: [
@@ -95,17 +95,17 @@ const initialGroups: Group[] = [
     membersCount: 3,
     image: "https://placehold.co/100x100",
     imageHint: "team collaboration",
-    members: [{ name: "Noah", avatar: "https://placehold.co/40x40", avatarHint: "man with glasses" }, { name: "Emma", avatar: "https://placehold.co/40x40", avatarHint: "woman with glasses" }, { name: "Ava", avatar: "https://placehold.co/40x40", avatarHint: "woman looking away"}],
+    members: [{ name: "You", avatar: "/profile.png", avatarHint: "your profile picture" }, { name: "Noah", avatar: "https://placehold.co/40x40", avatarHint: "man with glasses" }, { name: "Emma", avatar: "https://placehold.co/40x40", avatarHint: "woman with glasses" }],
     tasks: [],
     chat: [],
   },
   {
     id: 3,
     name: "Book Club",
-    membersCount: 4,
+    membersCount: 1,
     image: "https://placehold.co/100x100",
     imageHint: "person reading",
-    members: [],
+    members: [{ name: "You", avatar: "/profile.png", avatarHint: "your profile picture" }],
     tasks: [],
     chat: [],
   },
@@ -130,6 +130,8 @@ export default function GroupsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [isCreateGroupDialogOpen, setIsCreateGroupDialogOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
   const [newTaskDetails, setNewTaskDetails] = useState({ title: "", assignee: "", dueDate: new Date() });
 
   const selectedGroup = groups.find(g => g.id === selectedGroupId) || groups[0];
@@ -173,6 +175,28 @@ export default function GroupsPage() {
     setNewTaskDetails({ title: "", assignee: "", dueDate: new Date() }); // Reset form
   };
 
+  const handleCreateNewGroup = () => {
+    if (!newGroupName.trim()) {
+      alert("Please enter a group name.");
+      return;
+    }
+    const newGroup: Group = {
+      id: Date.now(),
+      name: newGroupName,
+      membersCount: 1,
+      image: "https://placehold.co/100x100",
+      imageHint: "new group",
+      members: [{ name: "You", avatar: "/profile.png", avatarHint: "your profile picture" }],
+      tasks: [],
+      chat: [],
+    };
+    setGroups([...groups, newGroup]);
+    setIsCreateGroupDialogOpen(false);
+    setNewGroupName("");
+    setSelectedGroupId(newGroup.id);
+  };
+
+
   const handleChangeGroupPicture = (groupId: number) => {
     const placeholderImages = [
       "https://placehold.co/100x100",
@@ -189,6 +213,13 @@ export default function GroupsPage() {
       return group;
     }));
   }
+
+  const handleGroupNameChange = (groupId: number, newName: string) => {
+    setGroups(groups.map(group =>
+      group.id === groupId ? { ...group, name: newName } : group
+    ));
+  };
+
 
   const handleTitleChange = (taskId: number, newTitle: string) => {
     updateTask(taskId, { title: newTitle });
@@ -281,13 +312,17 @@ export default function GroupsPage() {
               </div>
             ))}
         </div>
-        <Button variant="outline" className="w-full mt-4">Create Group</Button>
+        <Button variant="outline" className="w-full mt-4" onClick={() => setIsCreateGroupDialogOpen(true)}>Create Group</Button>
       </div>
 
       <div className="md:col-span-3">
         {selectedGroup && (
           <div className="space-y-8">
-            <h1 className="text-3xl font-bold">{selectedGroup.name}</h1>
+             <Input 
+                value={selectedGroup.name}
+                onChange={(e) => handleGroupNameChange(selectedGroup.id, e.target.value)}
+                className="text-3xl font-bold border-0 shadow-none focus-visible:ring-0 p-0 h-auto"
+              />
 
             <div>
               <h3 className="text-xl font-semibold mb-3">Members</h3>
@@ -435,6 +470,7 @@ export default function GroupsPage() {
           </div>
         )}
       </div>
+
       <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -492,6 +528,30 @@ export default function GroupsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isCreateGroupDialogOpen} onOpenChange={setIsCreateGroupDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create a new group</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="group-name">Group Name</Label>
+              <Input
+                id="group-name"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                placeholder="e.g. Chemistry Study Buddies"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateGroupDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateNewGroup}>Create Group</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
