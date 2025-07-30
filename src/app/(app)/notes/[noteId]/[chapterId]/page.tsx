@@ -101,6 +101,7 @@ export default function ChapterPage() {
   const [note, setNote] = useState<Note | null>(null);
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [chapterContent, setChapterContent] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
   
   useEffect(() => {
     if (noteId !== null && chapterId !== null) {
@@ -123,6 +124,12 @@ export default function ChapterPage() {
             <Button variant="link" asChild><Link href={`/notes/${noteId}`}>Go back to notebook</Link></Button>
         </div>
     );
+  }
+
+  const handleSave = () => {
+    // In a real app, this would save to a database.
+    console.log("Saved content:", chapterContent);
+    setIsEditing(false);
   }
 
   return (
@@ -182,28 +189,31 @@ export default function ChapterPage() {
             <Card className="h-[calc(100vh-10rem)] flex flex-col">
               <div className="p-4 border-b flex items-center justify-between">
                   <h1 className="text-2xl font-bold">{chapter.title}</h1>
-                  <Button>Save Changes</Button>
+                  {isEditing ? (
+                    <Button onClick={handleSave}>Save Changes</Button>
+                  ) : (
+                    <Button onClick={() => setIsEditing(true)}>Edit</Button>
+                  )}
               </div>
-              <div className="grid md:grid-cols-2 flex-1 overflow-hidden">
-                <div className="relative h-full">
-                    <Textarea
+              <div className="flex-1 overflow-auto">
+                {isEditing ? (
+                   <Textarea
                         value={chapterContent}
                         onChange={(e) => setChapterContent(e.target.value)}
                         className="w-full h-full border-0 resize-none focus-visible:ring-0 p-6 text-base"
                         placeholder="Start writing your notes using Markdown..."
                     />
-                </div>
-                <Separator orientation="vertical" className="h-full hidden md:block" />
-                <div className="relative h-full overflow-auto hidden md:block">
-                  <div className="prose prose-sm dark:prose-invert max-w-none p-6">
+                ) : (
+                  <div className="prose prose-lg dark:prose-invert max-w-none p-8" onClick={() => setIsEditing(true)}>
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {chapterContent}
                     </ReactMarkdown>
                   </div>
-                </div>
+                )}
               </div>
             </Card>
         </SidebarInset>
     </SidebarProvider>
   );
 }
+
