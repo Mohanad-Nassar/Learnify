@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { useState, useRef } from "react";
@@ -27,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Paperclip, Send } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type Member = {
   name: string;
@@ -376,5 +378,3 @@ export default function GroupsPage() {
     </div>
   );
 }
-
-    
