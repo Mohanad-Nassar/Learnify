@@ -71,12 +71,20 @@ export default function NotesPage() {
   }
 
   const categories = useMemo(() => {
-    const noteCategories = notes.map(note => getCategoryForNote(note.subject));
-    const subjectCategories = subjects.map(s => s.category);
-    const allCategories = [...noteCategories, ...subjectCategories];
-    const uniqueCategories = Array.from(new Set(allCategories));
-    return ["All", ...uniqueCategories];
-  }, [notes, subjects]);
+    // Get unique categories from user-defined subjects
+    const userCategories = Array.from(new Set(subjects.map(s => s.category)));
+
+    // Check if there are any notes that fall under "General"
+    const hasGeneral = notes.some(note => getCategoryForNote(note.subject) === 'General') || newNoteDetails.subject === 'General';
+
+    const finalCategories = ["All", ...userCategories];
+    if (hasGeneral) {
+      finalCategories.push("General");
+    }
+    
+    // Ensure no duplicates if a user category is "General"
+    return Array.from(new Set(finalCategories));
+  }, [notes, subjects, newNoteDetails.subject]);
 
 
   const filteredNotes = useMemo(() => {
