@@ -94,7 +94,10 @@ const formatDueDate = (dateString: string) => {
 
 const TaskItem = ({ task, onToggleComplete, onEdit, onDelete }: { task: Task; onToggleComplete: (id: number, isCompleted: boolean) => void; onEdit: (task: Task) => void; onDelete: (id: number) => void; }) => {
   return (
-     <Card className="hover:shadow-md transition-all duration-300">
+     <Card 
+        className="hover:shadow-md transition-all duration-300"
+        onDoubleClick={() => !task.isCompleted && onToggleComplete(task.id, true)}
+     >
       <CardContent className="p-4 flex items-center">
         <Checkbox
             id={`task-${task.id}`}
