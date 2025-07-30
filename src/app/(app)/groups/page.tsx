@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,6 +26,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { Paperclip, Send } from "lucide-react";
 
 type Member = {
   name: string;
@@ -49,6 +50,7 @@ type ChatMessage = {
   avatar: string;
   avatarHint: string;
   timestamp: string;
+  attachment?: string;
 };
 
 type Group = {
@@ -67,27 +69,28 @@ const initialGroups: Group[] = [
     id: 1,
     name: "Study Group",
     membersCount: 2,
-    image: "/group-icon-1.png",
+    image: "https://placehold.co/100x100",
     imageHint: "people studying",
     members: [
+      { name: "You", avatar: "/profile.png", avatarHint: "your profile picture" },
       { name: "Olivia", avatar: "https://placehold.co/40x40", avatarHint: "woman smiling" },
       { name: "Liam", avatar: "https://placehold.co/40x40", avatarHint: "man thinking" },
     ],
     tasks: [
       { id: 1, title: "Prepare presentation", status: "In Progress", assignee: "Olivia", dueDate: new Date("2024-07-15") },
       { id: 2, title: "Write report", status: "Completed", assignee: "Liam", dueDate: new Date("2024-07-10") },
-      { id: 3, title: "Review notes", status: "To Do", assignee: "Olivia", dueDate: new Date("2024-07-20") },
+      { id: 3, title: "Review notes", status: "To Do", assignee: "You", dueDate: new Date("2024-07-20") },
     ],
     chat: [
-      { user: "Olivia", message: "Hey everyone, let's schedule a meeting to discuss the presentation.", avatar: "https://placehold.co/40x40", avatarHint: "woman smiling", timestamp: "2024-07-12 10:00 AM" },
-      { user: "Liam", message: "Sounds good, Olivia. How about tomorrow afternoon?", avatar: "https://placehold.co/40x40", avatarHint: "man thinking", timestamp: "2024-07-12 10:15 AM" },
+      { user: "Olivia", message: "Hey everyone, let's schedule a meeting to discuss the presentation.", avatar: "https://placehold.co/40x40", avatarHint: "woman smiling", timestamp: "10:00 AM" },
+      { user: "Liam", message: "Sounds good, Olivia. How about tomorrow afternoon?", avatar: "https://placehold.co/40x40", avatarHint: "man thinking", timestamp: "10:15 AM" },
     ],
   },
   {
     id: 2,
     name: "Project Team",
     membersCount: 3,
-    image: "/group-icon-2.png",
+    image: "https://placehold.co/100x100",
     imageHint: "team collaboration",
     members: [{ name: "Noah", avatar: "https://placehold.co/40x40", avatarHint: "man with glasses" }, { name: "Emma", avatar: "https://placehold.co/40x40", avatarHint: "woman with glasses" }, { name: "Ava", avatar: "https://placehold.co/40x40", avatarHint: "woman looking away"}],
     tasks: [],
@@ -97,7 +100,7 @@ const initialGroups: Group[] = [
     id: 3,
     name: "Book Club",
     membersCount: 4,
-    image: "/group-icon-3.png",
+    image: "https://placehold.co/100x100",
     imageHint: "person reading",
     members: [],
     tasks: [],
@@ -119,6 +122,10 @@ const getStatusBadgeVariant = (status: SharedTask['status']) => {
 export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>(initialGroups);
   const [selectedGroupId, setSelectedGroupId] = useState(1);
+  const [newMessage, setNewMessage] = useState("");
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const selectedGroup = groups.find(g => g.id === selectedGroupId) || groups[0];
   
   const updateTask = (taskId: number, updatedProperties: Partial<SharedTask>) => {
@@ -151,6 +158,44 @@ export default function GroupsPage() {
     if (!newDueDate) return;
     updateTask(taskId, { dueDate: newDueDate });
   };
+  
+  const handleSendMessage = () => {
+    if (newMessage.trim() === "" && !attachment) return;
+
+    const currentUser = selectedGroup.members.find(m => m.name === 'You') || { name: "You", avatar: "/profile.png", avatarHint: "your profile picture" };
+
+    const messageToSend: ChatMessage = {
+        user: currentUser.name,
+        message: newMessage,
+        avatar: currentUser.avatar,
+        avatarHint: currentUser.avatarHint,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        attachment: attachment ? attachment.name : undefined,
+    };
+
+    setGroups(groups.map(group => {
+        if (group.id === selectedGroupId) {
+            return {
+                ...group,
+                chat: [...group.chat, messageToSend]
+            };
+        }
+        return group;
+    }));
+
+    setNewMessage("");
+    setAttachment(null);
+    if(fileInputRef.current) {
+        fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFileAttach = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setAttachment(e.target.files[0]);
+    }
+  };
+
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -273,11 +318,11 @@ export default function GroupsPage() {
 
             <div>
               <h3 className="text-xl font-semibold mb-3">Group Chat</h3>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="space-y-6 h-60 overflow-y-auto pr-4">
+                <Card className="flex flex-col h-[400px]">
+                    <CardContent className="pt-6 flex-grow overflow-hidden">
+                        <ScrollArea className="h-full pr-4">
                         {selectedGroup.chat.map((msg, index) => (
-                            <div key={index} className="flex items-start gap-3">
+                            <div key={index} className="flex items-start gap-3 mb-4">
                                 <Avatar className="h-8 w-8">
                                     <AvatarImage src={msg.avatar} data-ai-hint={msg.avatarHint} />
                                     <AvatarFallback>{msg.user.charAt(0)}</AvatarFallback>
@@ -288,17 +333,41 @@ export default function GroupsPage() {
                                         <p className="text-xs text-muted-foreground">{msg.timestamp}</p>
                                     </div>
                                     <p>{msg.message}</p>
+                                    {msg.attachment && (
+                                      <div className="mt-2 text-sm text-blue-500 flex items-center gap-2">
+                                        <Paperclip className="h-4 w-4" />
+                                        <span>{msg.attachment}</span>
+                                      </div>
+                                    )}
                                 </div>
                             </div>
                         ))}
-                        </div>
-                        <div className="mt-4 flex space-x-2">
-                            <Input placeholder="Write a message" />
-                            <Button variant="ghost" size="icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.59a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                        </ScrollArea>
+                    </CardContent>
+                    <div className="p-4 border-t">
+                        {attachment && (
+                            <div className="mb-2 text-sm text-muted-foreground flex items-center gap-2">
+                                <Paperclip className="h-4 w-4" />
+                                <span>{attachment.name}</span>
+                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => {setAttachment(null); if(fileInputRef.current) fileInputRef.current.value = ""}}>&times;</Button>
+                            </div>
+                        )}
+                        <div className="flex space-x-2">
+                            <Input 
+                                placeholder="Write a message"
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                            />
+                             <input type="file" ref={fileInputRef} onChange={handleFileAttach} className="hidden" />
+                             <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
+                                <Paperclip className="h-5 w-5" />
+                            </Button>
+                            <Button onClick={handleSendMessage} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                                <Send className="h-5 w-5" />
                             </Button>
                         </div>
-                    </CardContent>
+                    </div>
                 </Card>
             </div>
           </div>
@@ -307,3 +376,5 @@ export default function GroupsPage() {
     </div>
   );
 }
+
+    
