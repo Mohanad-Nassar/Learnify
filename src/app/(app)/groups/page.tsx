@@ -320,23 +320,25 @@ export default function GroupsPage() {
           <div className="space-y-8">
              <div className="flex items-center gap-4">
                 <h1 className="text-3xl font-bold flex-grow">{selectedGroup.name}</h1>
-                <div className="flex -space-x-2">
-                  {selectedGroup.members.map((member) => (
-                    <Avatar key={member.name} className="h-8 w-8 border-2 border-background">
-                      <AvatarImage src={member.avatar} data-ai-hint={member.avatarHint} />
-                      <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                  ))}
-                </div>
              </div>
 
 
             <div>
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-xl font-semibold">Shared Tasks</h3>
-                <Button onClick={() => setIsTaskDialogOpen(true)} size="sm">
-                  <Plus className="h-4 w-4 mr-2" /> Add Task
-                </Button>
+                 <div className="flex items-center gap-4">
+                    <div className="flex -space-x-2">
+                    {selectedGroup.members.map((member) => (
+                        <Avatar key={member.name} className="h-8 w-8 border-2 border-background">
+                        <AvatarImage src={member.avatar} data-ai-hint={member.avatarHint} />
+                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                    ))}
+                    </div>
+                    <Button onClick={() => setIsTaskDialogOpen(true)} size="sm">
+                    <Plus className="h-4 w-4 mr-2" /> Add Task
+                    </Button>
+                </div>
               </div>
                 <Card>
                     <CardContent className="p-0">
