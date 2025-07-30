@@ -135,8 +135,7 @@ export default function TasksPage() {
   const [filter, setFilter] = useState('All');
   const [subjectFilter, setSubjectFilter] = useState('All');
   const [showConfetti, setShowConfetti] = useState(false);
-  const [animatingTaskId, setAnimatingTaskId] = useState<number | null>(null);
-
+  const [completedTaskId, setCompletedTaskId] = useState<number | null>(null);
 
   const subjects = ['All', ...Array.from(new Set(initialTasks.map(t => t.subject)))];
 
@@ -147,23 +146,19 @@ export default function TasksPage() {
   });
 
   useEffect(() => {
-    if (showConfetti) {
+    if (showConfetti && completedTaskId !== null) {
       const timer = setTimeout(() => {
         setShowConfetti(false);
-        if (animatingTaskId !== null) {
-          const completedTask = tasks.find(t => t.id === animatingTaskId);
-          if (completedTask) {
-             const updatedTasks = tasks.map(task => 
-                task.id === animatingTaskId ? { ...task, isCompleted: true, status: "Done" } : task
-              );
-              setTasks(updatedTasks)
-          }
-          setAnimatingTaskId(null);
-        }
-      }, 3000); // Duration for confetti + animation
+        setTasks(currentTasks => 
+            currentTasks.map(task => 
+                task.id === completedTaskId ? { ...task, isCompleted: true, status: "Done" } : task
+            )
+        );
+        setCompletedTaskId(null);
+      }, 2000); // Confetti duration
       return () => clearTimeout(timer);
     }
-  }, [showConfetti, animatingTaskId, tasks]);
+  }, [showConfetti, completedTaskId]);
 
 
   const resetForm = () => {
@@ -227,11 +222,11 @@ export default function TasksPage() {
   
   const handleToggleComplete = (taskId: number, isCompleted: boolean) => {
     if (isCompleted) {
-      setAnimatingTaskId(taskId);
+      setCompletedTaskId(taskId);
       setShowConfetti(true);
       // Strikethrough immediately
       setTasks(tasks => tasks.map(task => 
-        task.id === taskId ? { ...task, isCompleted: true, status: "Done" } : task
+        task.id === taskId ? { ...task, isCompleted: true } : task
       ));
     } else {
        setTasks(tasks.map(task => 
@@ -253,8 +248,8 @@ export default function TasksPage() {
     return filterCondition && subjectCondition;
   });
 
-  const incompleteTasks = baseFilteredTasks.filter(task => !task.isCompleted || task.id === animatingTaskId);
-  const completedTasks = baseFilteredTasks.filter(task => task.isCompleted && task.id !== animatingTaskId);
+  const incompleteTasks = baseFilteredTasks.filter(task => !task.isCompleted);
+  const completedTasks = baseFilteredTasks.filter(task => task.isCompleted);
 
   return (
     <div className="space-y-8 p-4 md:p-8 bg-background text-foreground">
@@ -330,7 +325,7 @@ export default function TasksPage() {
                     onToggleComplete={handleToggleComplete}
                     onEdit={handleOpenDialog}
                     onDelete={handleDeleteTask}
-                    isAnimating={animatingTaskId === task.id}
+                    isAnimating={false}
                     />
                 )) : (
                     <p className="p-4 text-center text-muted-foreground bg-muted/50 rounded-lg">No active tasks. Well done!</p>
@@ -361,3 +356,5 @@ export default function TasksPage() {
     </div>
   )
 }
+
+    
