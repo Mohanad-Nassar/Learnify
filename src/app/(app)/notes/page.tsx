@@ -271,7 +271,7 @@ export default function NotesPage() {
   }
 
   return (
-    <div className="space-y-8 px-8">
+    <div className="space-y-8 px-16">
        <Breadcrumb>
         <BreadcrumbList>
             <BreadcrumbItem>
