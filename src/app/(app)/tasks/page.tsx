@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import Confetti from 'react-confetti'
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -133,6 +134,7 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [filter, setFilter] = useState('All');
   const [subjectFilter, setSubjectFilter] = useState('All');
+  const [showConfetti, setShowConfetti] = useState(false);
   const [animatingTaskId, setAnimatingTaskId] = useState<number | null>(null);
 
 
@@ -143,6 +145,26 @@ export default function TasksPage() {
     subject: "",
     dueDate: "",
   });
+
+  useEffect(() => {
+    if (showConfetti) {
+      const timer = setTimeout(() => {
+        setShowConfetti(false);
+        if (animatingTaskId !== null) {
+          const completedTask = tasks.find(t => t.id === animatingTaskId);
+          if (completedTask) {
+             const updatedTasks = tasks.map(task => 
+                task.id === animatingTaskId ? { ...task, isCompleted: true, status: "Done" } : task
+              );
+              setTasks(updatedTasks)
+          }
+          setAnimatingTaskId(null);
+        }
+      }, 3000); // Duration for confetti + animation
+      return () => clearTimeout(timer);
+    }
+  }, [showConfetti, animatingTaskId, tasks]);
+
 
   const resetForm = () => {
     setTaskDetails({
@@ -206,13 +228,11 @@ export default function TasksPage() {
   const handleToggleComplete = (taskId: number, isCompleted: boolean) => {
     if (isCompleted) {
       setAnimatingTaskId(taskId);
+      setShowConfetti(true);
       // Strikethrough immediately
       setTasks(tasks => tasks.map(task => 
         task.id === taskId ? { ...task, isCompleted: true, status: "Done" } : task
       ));
-      setTimeout(() => {
-        setAnimatingTaskId(null);
-      }, 500); // Animation duration
     } else {
        setTasks(tasks.map(task => 
         task.id === taskId ? { ...task, isCompleted: false, status: "Not Started" } : task
@@ -233,11 +253,12 @@ export default function TasksPage() {
     return filterCondition && subjectCondition;
   });
 
-  const incompleteTasks = baseFilteredTasks.filter(task => !task.isCompleted);
-  const completedTasks = baseFilteredTasks.filter(task => task.isCompleted);
+  const incompleteTasks = baseFilteredTasks.filter(task => !task.isCompleted || task.id === animatingTaskId);
+  const completedTasks = baseFilteredTasks.filter(task => task.isCompleted && task.id !== animatingTaskId);
 
   return (
     <div className="space-y-8 p-4 md:p-8 bg-background text-foreground">
+      {showConfetti && <Confetti recycle={false} onConfettiComplete={() => setShowConfetti(false)} />}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Tasks</h1>
       </div>
