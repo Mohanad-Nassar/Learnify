@@ -149,7 +149,7 @@ export default function TasksPage() {
             return task;
           })
         );
-      }, 2000);
+      }, 1000);
 
       return () => clearTimeout(timer);
     }
