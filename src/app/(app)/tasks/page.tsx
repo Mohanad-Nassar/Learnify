@@ -257,7 +257,7 @@ export default function TasksPage() {
   const completedTasks = baseFilteredTasks.filter(task => task.status === "Done");
 
   return (
-    <div className="space-y-8 p-4 md:p-8 bg-background text-foreground">
+    <div className="space-y-8 max-w-4xl mx-auto">
       {showConfetti && <Confetti recycle={false} onConfettiComplete={() => setShowConfetti(false)} />}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Tasks</h1>

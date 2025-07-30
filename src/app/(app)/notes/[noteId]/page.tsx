@@ -281,7 +281,7 @@ export default function NoteDetailPage() {
   const imageHint = `${note.subject.toLowerCase()} notebook`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
        <Breadcrumb>
         <BreadcrumbList>
             <BreadcrumbItem>

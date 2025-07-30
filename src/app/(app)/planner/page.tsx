@@ -117,7 +117,7 @@ export default function PlannerPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
        <div>
           <h1 className="text-3xl font-bold font-headline">Study Planner</h1>
           <p className="text-muted-foreground">Plan your study sessions and stay organized.</p>

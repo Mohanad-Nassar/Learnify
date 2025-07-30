@@ -303,7 +303,7 @@ export default function GroupsPage() {
 
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-7xl mx-auto">
       <div className="md:col-span-1">
         <h2 className="text-2xl font-bold mb-4">Groups</h2>
         <div className="space-y-2">
