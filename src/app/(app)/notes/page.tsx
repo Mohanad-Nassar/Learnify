@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import Link from "next/link"
 
 const initialNotes = [
   { 
@@ -21,7 +22,8 @@ const initialNotes = [
     content: "Comprehensive notes on calculus, covering limits, derivatives, and integrals.", 
     subject: "Calculus",
     image: "https://placehold.co/300x200",
-    imageHint: "mathematics graph"
+    imageHint: "mathematics graph",
+    chapters: [{id: 1, title: "Chapter 1: Limits"}, {id: 2, title: "Chapter 2: Derivatives"}]
   },
   { 
     id: 2, 
@@ -29,7 +31,8 @@ const initialNotes = [
     content: "Detailed notes on cell biology, genetics, and evolution.", 
     subject: "Biology",
     image: "https://placehold.co/300x201",
-    imageHint: "biology book"
+    imageHint: "biology book",
+    chapters: []
   },
   { 
     id: 3, 
@@ -37,7 +40,8 @@ const initialNotes = [
     content: "Key events, causes, and consequences of World War II.", 
     subject: "World History",
     image: "https://placehold.co/301x200",
-    imageHint: "history book"
+    imageHint: "history book",
+    chapters: []
   },
   { 
     id: 4, 
@@ -45,7 +49,8 @@ const initialNotes = [
     content: "Notes on linear equations, quadratic equations, and polynomials.", 
     subject: "Calculus", // Changed to show filtering effect
     image: "https://placehold.co/300x202",
-    imageHint: "algebra textbook"
+    imageHint: "algebra textbook",
+    chapters: []
   },
    { 
     id: 5, 
@@ -53,7 +58,8 @@ const initialNotes = [
     content: "Notes on mechanics and thermodynamics.", 
     subject: "Physics",
     image: "https://placehold.co/302x200",
-    imageHint: "physics experiment"
+    imageHint: "physics experiment",
+    chapters: []
   },
 ];
 
@@ -84,15 +90,14 @@ export default function NotesPage() {
   const categories = useMemo(() => {
     const userCategories = Array.from(new Set(subjects.map(s => s.category)));
     const noteSubjects = new Set(notes.map(n => n.subject));
-    const hasGeneral = notes.some(note => !subjects.find(s => s.name === note.subject));
-    
-    const finalCategories = ["All", ...userCategories];
-    if (hasGeneral || (newNoteDetails.subject && !subjects.find(s => s.name === newNoteDetails.subject))) {
+    const notesWithNoCategory = notes.some(note => !subjects.some(s => s.name === note.subject));
+
+    let finalCategories = ["All", ...userCategories];
+    if (notesWithNoCategory) {
       finalCategories.push("General");
     }
-    
-    return Array.from(new Set(finalCategories));
-  }, [notes, subjects, newNoteDetails.subject]);
+    return finalCategories;
+  }, [notes, subjects]);
 
 
   const filteredNotes = useMemo(() => {
@@ -111,14 +116,17 @@ export default function NotesPage() {
       id: Date.now(),
       ...newNoteDetails,
       image: "https://placehold.co/300x200",
-      imageHint: "new note placeholder"
+      imageHint: "new note placeholder",
+      chapters: []
     };
     setNotes([...notes, newNote]);
     setIsAddDialogOpen(false);
     setNewNoteDetails({ title: "", content: "", subject: "" });
   };
   
-  const handleOpenEditDialog = (note: typeof initialNotes[0]) => {
+  const handleOpenEditDialog = (e: React.MouseEvent, note: typeof initialNotes[0]) => {
+    e.preventDefault();
+    e.stopPropagation();
     setEditingNote(note);
     setIsEditDialogOpen(true);
   };
@@ -169,34 +177,36 @@ export default function NotesPage() {
       <div className="space-y-6">
         {filteredNotes.length > 0 ? (
           filteredNotes.map((note) => (
-            <Card key={note.id} className="group/note overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
-              <div className="grid grid-cols-1 md:grid-cols-3">
-                <div className="md:col-span-2">
-                  <CardContent className="p-6">
-                    <p className="text-sm font-semibold text-primary">{getCategoryForNote(note.subject)}</p>
-                    <h2 className="text-xl font-bold mt-1 mb-2">{note.title}</h2>
-                    <p className="text-muted-foreground">{note.content}</p>
-                  </CardContent>
-                </div>
-                <div className="relative h-40 md:h-full">
-                  <Image
-                    src={note.image}
-                    alt={note.title}
-                    layout="fill"
-                    objectFit="cover"
-                    data-ai-hint={note.imageHint}
-                  />
-                  <Button 
-                    variant="secondary"
-                    size="icon"
-                    className="absolute top-2 right-2 opacity-0 group-hover/note:opacity-100 transition-opacity"
-                    onClick={() => handleOpenEditDialog(note)}
-                  >
-                    <Pencil className="h-5 w-5" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
+             <Link href={`/notes/${note.id}`} key={note.id} className="block group/note">
+                <Card className="overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
+                  <div className="grid grid-cols-1 md:grid-cols-3">
+                    <div className="md:col-span-2">
+                      <CardContent className="p-6">
+                        <p className="text-sm font-semibold text-primary">{getCategoryForNote(note.subject)}</p>
+                        <h2 className="text-xl font-bold mt-1 mb-2">{note.title}</h2>
+                        <p className="text-muted-foreground">{note.content}</p>
+                      </CardContent>
+                    </div>
+                    <div className="relative h-40 md:h-full">
+                      <Image
+                        src={note.image}
+                        alt={note.title}
+                        layout="fill"
+                        objectFit="cover"
+                        data-ai-hint={note.imageHint}
+                      />
+                      <Button 
+                        variant="secondary"
+                        size="icon"
+                        className="absolute top-2 right-2 opacity-0 group-hover/note:opacity-100 transition-opacity z-10"
+                        onClick={(e) => handleOpenEditDialog(e, note)}
+                      >
+                        <Pencil className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+            </Link>
           ))
         ) : (
           <div className="text-center text-muted-foreground py-10">
