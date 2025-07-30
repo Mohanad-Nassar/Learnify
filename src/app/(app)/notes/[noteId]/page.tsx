@@ -30,8 +30,6 @@ const getInitialNotes = () => {
             title: "Calculus Notes", 
             content: "Comprehensive notes on calculus, covering limits, derivatives, and integrals.", 
             subject: "Calculus",
-            image: "/notebook-calculus.png",
-            imageHint: "mathematics graph",
             chapters: [
                 {
                     id: 1, 
@@ -67,8 +65,6 @@ const getInitialNotes = () => {
             title: "Biology Notes", 
             content: "Detailed notes on cell biology, genetics, and evolution.", 
             subject: "Biology",
-            image: "/notebook-biology.png",
-            imageHint: "biology book",
             chapters: [
                 {
                     id: 1, 
@@ -104,8 +100,6 @@ const getInitialNotes = () => {
             title: "World War II Notes", 
             content: "Key events, causes, and consequences of World War II.", 
             subject: "World History",
-            image: "/notebook-history.png",
-            imageHint: "history book",
             chapters: [
                  {
                     id: 1, 
@@ -141,8 +135,6 @@ const getInitialNotes = () => {
             title: "Physics Notes",
             content: "Notes on mechanics and thermodynamics.",
             subject: "Physics",
-            image: "/notebook-physics.png",
-            imageHint: "physics experiment",
             chapters: [
               {
                 id: 1,
@@ -193,9 +185,18 @@ type Chapter = {
 type Note = {
   id: number;
   title: string;
-  image: string;
-  imageHint: string;
+  subject: string;
   chapters: Chapter[];
+};
+
+
+const getImageForCategory = (subject: string) => {
+    // This is a placeholder. In a real app, you might have a more sophisticated way
+    // of mapping subjects to categories and images.
+    if (subject === 'Calculus') return "/notebook-math.png";
+    if (subject === 'Biology' || subject === 'Physics') return "/notebook-science.png";
+    if (subject === 'World History') return "/notebook-history.png";
+    return "/notebook-general.png";
 };
 
 
@@ -276,6 +277,9 @@ export default function NoteDetailPage() {
     );
   }
 
+  const image = getImageForCategory(note.subject);
+  const imageHint = `${note.subject.toLowerCase()} notebook`;
+
   return (
     <div className="space-y-6">
        <Breadcrumb>
@@ -299,13 +303,13 @@ export default function NoteDetailPage() {
         </Breadcrumb>
       <div>
         <div className="relative w-full h-64 rounded-lg overflow-hidden mb-6">
-           {note.image && (
+           {image && (
               <Image
-                  src={note.image}
+                  src={image}
                   alt={note.title}
                   layout="fill"
                   objectFit="cover"
-                  data-ai-hint={note.imageHint}
+                  data-ai-hint={imageHint}
               />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -368,5 +372,3 @@ export default function NoteDetailPage() {
     </div>
   );
 }
-
-    

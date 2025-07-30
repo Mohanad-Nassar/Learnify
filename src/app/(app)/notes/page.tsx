@@ -33,8 +33,6 @@ const getInitialNotes = () => {
             title: "Calculus Notes", 
             content: "Comprehensive notes on calculus, covering limits, derivatives, and integrals.", 
             subject: "Calculus",
-            image: "/notebook-calculus.png",
-            imageHint: "mathematics graph",
             chapters: [
                 {
                     id: 1, 
@@ -70,8 +68,6 @@ const getInitialNotes = () => {
             title: "Biology Notes", 
             content: "Detailed notes on cell biology, genetics, and evolution.", 
             subject: "Biology",
-            image: "/notebook-biology.png",
-            imageHint: "biology book",
             chapters: [
                 {
                     id: 1, 
@@ -107,8 +103,6 @@ const getInitialNotes = () => {
             title: "World War II Notes", 
             content: "Key events, causes, and consequences of World War II.", 
             subject: "World History",
-            image: "/notebook-history.png",
-            imageHint: "history book",
             chapters: [
                  {
                     id: 1, 
@@ -144,8 +138,6 @@ const getInitialNotes = () => {
             title: "Physics Notes",
             content: "Notes on mechanics and thermodynamics.",
             subject: "Physics",
-            image: "/notebook-physics.png",
-            imageHint: "physics experiment",
             chapters: [
               {
                 id: 1,
@@ -186,8 +178,6 @@ const placeholderImages = [
   "/notebook-placeholder-2.png",
   "/notebook-placeholder-3.png",
   "/notebook-placeholder-4.png",
-  "/notebook-placeholder-5.png",
-  "/notebook-placeholder-6.png",
 ];
 
 
@@ -197,7 +187,7 @@ export default function NotesPage() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState<typeof notes[0] | null>(null);
+  const [editingNote, setEditingNote] = useState<any | null>(null);
   const [newNoteDetails, setNewNoteDetails] = useState({ title: "", content: "", subject: "" });
 
   const updateGlobalNotes = (newNotes: any[]) => {
@@ -211,6 +201,19 @@ export default function NotesPage() {
     const subject = subjects.find(s => s.name === noteSubject);
     return subject ? subject.category : "General";
   }
+
+  const getImageForCategory = (category: string) => {
+    switch (category) {
+      case "Math":
+        return "/notebook-math.png";
+      case "Science":
+        return "/notebook-science.png";
+      case "History":
+        return "/notebook-history.png";
+      default:
+        return "/notebook-general.png";
+    }
+  };
 
   const categories = useMemo(() => {
     const userCategories = Array.from(new Set(subjects.map(s => s.category)));
@@ -239,8 +242,6 @@ export default function NotesPage() {
     const newNote = {
       id: Date.now(),
       ...newNoteDetails,
-      image: "/notebook-new.png",
-      imageHint: "new note placeholder",
       chapters: []
     };
     updateGlobalNotes([...notes, newNote]);
@@ -248,7 +249,7 @@ export default function NotesPage() {
     setNewNoteDetails({ title: "", content: "", subject: "" });
   };
   
-  const handleOpenEditDialog = (e: React.MouseEvent, note: typeof notes[0]) => {
+  const handleOpenEditDialog = (e: React.MouseEvent, note: any) => {
     e.preventDefault();
     e.stopPropagation();
     setEditingNote(note);
@@ -314,24 +315,29 @@ export default function NotesPage() {
 
       <div className="space-y-6">
         {filteredNotes.length > 0 ? (
-          filteredNotes.map((note) => (
+          filteredNotes.map((note) => {
+            const category = getCategoryForNote(note.subject);
+            const image = getImageForCategory(category);
+            const imageHint = `${category.toLowerCase()} notebook`;
+
+            return (
              <Link href={`/notes/${note.id}`} key={note.id} className="block group/note">
                 <Card className="overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
                   <div className="grid grid-cols-1 md:grid-cols-3">
                     <div className="md:col-span-2">
                       <CardContent className="p-6">
-                        <p className="text-sm font-semibold text-primary">{getCategoryForNote(note.subject)}</p>
+                        <p className="text-sm font-semibold text-primary">{category}</p>
                         <h2 className="text-xl font-bold mt-1 mb-2">{note.title}</h2>
                         <p className="text-muted-foreground">{note.content}</p>
                       </CardContent>
                     </div>
                     <div className="relative h-40 md:h-full">
                       <Image
-                        src={note.image}
+                        src={image}
                         alt={note.title}
                         layout="fill"
                         objectFit="cover"
-                        data-ai-hint={note.imageHint}
+                        data-ai-hint={imageHint}
                       />
                       <Button 
                         variant="secondary"
@@ -345,7 +351,7 @@ export default function NotesPage() {
                   </div>
                 </Card>
             </Link>
-          ))
+          )})
         ) : (
           <div className="text-center text-muted-foreground py-10">
             <p>No notes found for this category.</p>
@@ -446,8 +452,8 @@ export default function NotesPage() {
               <div className="space-y-2">
                 <Label>Image</Label>
                 <div className="flex items-center gap-4">
-                    <Image src={editingNote.image} alt="Note image" width={100} height={66} className="rounded-md" />
-                    <Button variant="outline" onClick={handleChangeImage}>Change Image</Button>
+                    <Image src={getImageForCategory(getCategoryForNote(editingNote.subject))} alt="Note image" width={100} height={66} className="rounded-md" />
+                    <p className="text-sm text-muted-foreground">Image is based on category.</p>
                 </div>
               </div>
             </div>
@@ -462,5 +468,3 @@ export default function NotesPage() {
     </div>
   )
 }
-
-    
