@@ -6,7 +6,7 @@ import { useParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Book, Menu } from 'lucide-react';
+import { Book, Menu } from 'lucide-react';
 import {
   SidebarProvider,
   Sidebar,
@@ -18,7 +18,6 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from "@/components/ui/sidebar"
-import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import {
   Breadcrumb,
@@ -41,7 +40,10 @@ const initialNotes = [
     subject: "Calculus",
     image: "https://placehold.co/300x200",
     imageHint: "mathematics graph",
-    chapters: [{id: 1, title: "Chapter 1: Limits", content: "Markdown content for limits..."}, {id: 2, title: "Chapter 2: Derivatives", content: "Markdown content for derivatives..."}]
+    chapters: [
+        {id: 1, title: "Chapter 1: Limits", content: "# Chapter 1: Limits\n\nThis chapter is about limits. Here's a table:\n\n| Syntax | Description |\n| ----------- | ----------- |\n| Header | Title |\n| Paragraph | Text |\n\nAnd a list:\n\n- First item\n- Second item\n- Third item"}, 
+        {id: 2, title: "Chapter 2: Derivatives", content: "# Chapter 2: Derivatives\n\nThis chapter is about derivatives."}
+    ]
   },
   { 
     id: 2, 
@@ -90,7 +92,6 @@ type Chapter = {
 type Note = typeof initialNotes[0];
 
 export default function ChapterPage() {
-  const router = useRouter();
   const params = useParams();
   const pathname = usePathname();
 
@@ -178,7 +179,7 @@ export default function ChapterPage() {
                     </BreadcrumbList>
                 </Breadcrumb>
             </div>
-            <Card className="h-[calc(100vh-8rem)] flex flex-col">
+            <Card className="h-[calc(100vh-10rem)] flex flex-col">
               <div className="p-4 border-b flex items-center justify-between">
                   <h1 className="text-2xl font-bold">{chapter.title}</h1>
                   <Button>Save Changes</Button>
