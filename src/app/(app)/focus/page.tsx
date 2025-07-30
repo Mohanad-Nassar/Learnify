@@ -15,6 +15,23 @@ import { SubjectContext } from "@/context/SubjectContext";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Play, Pause, RotateCcw } from 'lucide-react';
 
+// Helper to safely get numbers from localStorage
+const getStoredNumber = (key: string, defaultValue: number): number => {
+    if (typeof window === 'undefined') return defaultValue;
+    const storedValue = localStorage.getItem(key);
+    return storedValue ? parseInt(storedValue, 10) : defaultValue;
+};
+
+// Helper to format time from seconds to Hh Mm format
+const formatTotalTime = (totalSeconds: number): string => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+}
+
 export default function FocusPage() {
     const { subjects } = useContext(SubjectContext);
     const [sessionLength, setSessionLength] = useState(25); // in minutes
@@ -24,7 +41,32 @@ export default function FocusPage() {
     const [timeRemaining, setTimeRemaining] = useState(sessionLength * 60);
     const [isActive, setIsActive] = useState(false);
     
+    // Stats State
+    const [sessionsCompleted, setSessionsCompleted] = useState(0);
+    const [todaysFocusTime, setTodaysFocusTime] = useState(0); // in seconds
+    const [totalFocusTime, setTotalFocusTime] = useState(0); // in seconds
+    const [lastResetDate, setLastResetDate] = useState<string | null>(null);
+
+    
     const alarmAudioRef = useRef<HTMLAudioElement>(null);
+
+    // Load stats from localStorage on initial render
+    useEffect(() => {
+        setSessionsCompleted(getStoredNumber('focus-sessionsCompleted', 0));
+        setTotalFocusTime(getStoredNumber('focus-totalFocusTime', 0));
+        const storedLastResetDate = localStorage.getItem('focus-lastResetDate');
+        const today = new Date().toISOString().split('T')[0];
+
+        if (storedLastResetDate === today) {
+            setTodaysFocusTime(getStoredNumber('focus-todaysFocusTime', 0));
+        } else {
+            // It's a new day, reset today's stats
+            localStorage.setItem('focus-todaysFocusTime', '0');
+            setTodaysFocusTime(0);
+            localStorage.setItem('focus-lastResetDate', today);
+            setLastResetDate(today);
+        }
+    }, []);
 
     useEffect(() => {
         if (!isActive) {
@@ -39,14 +81,31 @@ export default function FocusPage() {
                 setTimeRemaining(time => time - 1);
             }, 1000);
         } else if (isActive && timeRemaining === 0) {
-            if (alarmAudioRef.current) {
+             if (alarmAudioRef.current) {
                 alarmAudioRef.current.play();
             }
             setIsActive(false);
+
             if (timerMode === 'session') {
+                // A focus session was completed
+                const newSessionsCompleted = sessionsCompleted + 1;
+                const newTodaysFocusTime = todaysFocusTime + sessionLength * 60;
+                const newTotalFocusTime = totalFocusTime + sessionLength * 60;
+                
+                setSessionsCompleted(newSessionsCompleted);
+                setTodaysFocusTime(newTodaysFocusTime);
+                setTotalFocusTime(newTotalFocusTime);
+                
+                // Persist to localStorage
+                localStorage.setItem('focus-sessionsCompleted', String(newSessionsCompleted));
+                localStorage.setItem('focus-todaysFocusTime', String(newTodaysFocusTime));
+                localStorage.setItem('focus-totalFocusTime', String(newTotalFocusTime));
+
+                // Switch to break
                 setTimerMode('break');
                 setTimeRemaining(breakLength * 60);
             } else {
+                 // A break was completed, switch back to session
                 setTimerMode('session');
                 setTimeRemaining(sessionLength * 60);
             }
@@ -55,7 +114,7 @@ export default function FocusPage() {
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [isActive, timeRemaining, timerMode, sessionLength, breakLength]);
+    }, [isActive, timeRemaining, timerMode, sessionLength, breakLength, sessionsCompleted, todaysFocusTime, totalFocusTime]);
 
     const toggleTimer = () => {
         setIsActive(!isActive);
@@ -98,7 +157,6 @@ export default function FocusPage() {
     };
 
     const { hours, minutes, seconds } = formatTime(timeRemaining);
-    const currentTimerMinutes = timerMode === 'session' ? sessionLength : breakLength;
 
 
   return (
@@ -121,7 +179,7 @@ export default function FocusPage() {
 
       <Card className="shadow-lg">
         <CardHeader className="text-center">
-            <ToggleGroup type="single" value={timerMode} onValueChange={(mode) => {if(mode) setTimerMode(mode as 'session' | 'break')}} className="w-full max-w-xs mx-auto">
+            <ToggleGroup type="single" value={timerMode} onValueChange={(mode) => {if(mode && !isActive) setTimerMode(mode as 'session' | 'break')}} className="w-full max-w-xs mx-auto">
                 <ToggleGroupItem value="session" className="w-full">Focus</ToggleGroupItem>
                 <ToggleGroupItem value="break" className="w-full">Break</ToggleGroupItem>
             </ToggleGroup>
@@ -179,7 +237,7 @@ export default function FocusPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Today's Focus</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">2h 30m</div>
+            <div className="text-3xl font-bold">{formatTotalTime(todaysFocusTime)}</div>
           </CardContent>
         </Card>
 
@@ -188,7 +246,7 @@ export default function FocusPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Sessions Completed</CardTitle>
           </CardHeader>
           <CardContent>
-             <div className="text-3xl font-bold">3</div>
+             <div className="text-3xl font-bold">{sessionsCompleted}</div>
           </CardContent>
         </Card>
 
@@ -197,7 +255,7 @@ export default function FocusPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Focus Time</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">15h 45m</div>
+            <div className="text-3xl font-bold">{formatTotalTime(totalFocusTime)}</div>
           </CardContent>
         </Card>
       </div>
