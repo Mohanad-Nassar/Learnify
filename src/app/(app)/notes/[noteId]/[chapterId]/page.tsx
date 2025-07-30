@@ -220,16 +220,20 @@ export default function ChapterPage() {
   const [isSectionDialogOpen, setIsSectionDialogOpen] = useState(false);
   const [newSectionTitle, setNewSectionTitle] = useState("");
   const [newSectionContent, setNewSectionContent] = useState("");
+  const [isChapterDialogOpen, setIsChapterDialogOpen] = useState(false);
+  const [newChapterTitle, setNewChapterTitle] = useState("");
 
 
   useEffect(() => {
-    if (noteId !== null && chapterId !== null) {
+    if (noteId !== null) {
       const foundNote = notes.find(n => n.id === noteId);
       if (foundNote) {
         setNote(foundNote);
-        const foundChapter = foundNote.chapters.find(c => c.id === chapterId);
-        if(foundChapter) {
-          setChapter(foundChapter);
+        if (chapterId !== null) {
+          const foundChapter = foundNote.chapters.find(c => c.id === chapterId);
+          if(foundChapter) {
+            setChapter(foundChapter);
+          }
         }
       }
     }
@@ -288,6 +292,25 @@ export default function ChapterPage() {
     const updatedNote = { ...note, chapters: note.chapters.map(c => c.id === chapterId ? updatedChapter : c)};
     updateNoteData(updatedNote);
   }
+  
+  const handleSaveChapter = () => {
+    if (!newChapterTitle.trim() || !note) return;
+
+    const newChapter: Chapter = {
+      id: note.chapters.length > 0 ? Math.max(...note.chapters.map(c => c.id)) + 1 : 1,
+      title: newChapterTitle,
+      sections: [],
+    };
+    
+    const updatedNote = { ...note, chapters: [...note.chapters, newChapter] };
+    updateNoteData(updatedNote);
+    
+    setNewChapterTitle("");
+    setIsChapterDialogOpen(false);
+    
+    // Navigate to the new chapter
+    router.push(`/notes/${note.id}/${newChapter.id}`);
+  }
 
   if (!note || !chapter) {
     return (
@@ -301,14 +324,14 @@ export default function ChapterPage() {
   return (
     <SidebarProvider>
         <Sidebar collapsible="icon" className="h-screen sticky top-0">
-          <SidebarContent className="p-2">
+          <SidebarContent className="p-2 flex flex-col">
             <SidebarHeader>
               <div className="p-2 group-data-[collapsible=icon]:hidden">
                 <p className="font-semibold text-lg">{note.title}</p>
                 <p className="text-sm text-muted-foreground">Chapters</p>
               </div>
             </SidebarHeader>
-            <SidebarMenu>
+            <SidebarMenu className="flex-1">
               {note.chapters.map((chap) => (
                 <SidebarMenuItem key={chap.id}>
                     <Link href={`/notes/${note.id}/${chap.id}`} className="w-full">
@@ -320,6 +343,14 @@ export default function ChapterPage() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
+             <div className="p-2 mt-auto">
+                <Button variant="outline" className="w-full group-data-[collapsible=icon]:hidden" onClick={() => setIsChapterDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Chapter
+                </Button>
+                 <Button variant="outline" size="icon" className="hidden group-data-[collapsible=icon]:block" onClick={() => setIsChapterDialogOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                </Button>
+            </div>
           </SidebarContent>
         </Sidebar>
 
@@ -423,6 +454,30 @@ export default function ChapterPage() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+
+        <Dialog open={isChapterDialogOpen} onOpenChange={setIsChapterDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add a new chapter</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                    <Label htmlFor="chapter-title">Chapter Title</Label>
+                    <Input
+                        id="chapter-title"
+                        value={newChapterTitle}
+                        onChange={(e) => setNewChapterTitle(e.target.value)}
+                        placeholder="e.g. Introduction to Derivatives"
+                    />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsChapterDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleSaveChapter}>Add Chapter</Button>
+                </DialogFooter>
+            </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }
+
