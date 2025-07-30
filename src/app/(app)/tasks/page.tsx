@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -91,14 +91,17 @@ const formatDueDate = (dateString: string) => {
     return `Due ${format(date, 'MMM dd')}`;
 }
 
-const TaskItem = ({ task, onToggleComplete, onEdit, onDelete }: { task: Task; onToggleComplete: (id: number) => void; onEdit: (task: Task) => void; onDelete: (id: number) => void; }) => {
+const TaskItem = ({ task, onToggleComplete, onEdit, onDelete, isAnimating }: { task: Task; onToggleComplete: (id: number, isCompleted: boolean) => void; onEdit: (task: Task) => void; onDelete: (id: number) => void; isAnimating: boolean }) => {
   return (
-    <Card className="hover:shadow-md transition-shadow duration-200">
+     <Card className={cn(
+        "hover:shadow-md transition-all duration-300",
+        isAnimating && "shadow-lg shadow-primary/50 -translate-y-1"
+      )}>
       <CardContent className="p-4 flex items-center">
         <Checkbox
             id={`task-${task.id}`}
             checked={task.isCompleted}
-            onCheckedChange={() => onToggleComplete(task.id)}
+            onCheckedChange={(checked) => onToggleComplete(task.id, !!checked)}
             className="mr-4"
         />
         <div className="flex-grow">
@@ -130,6 +133,8 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [filter, setFilter] = useState('All');
   const [subjectFilter, setSubjectFilter] = useState('All');
+  const [animatingTaskId, setAnimatingTaskId] = useState<number | null>(null);
+
 
   const subjects = ['All', ...Array.from(new Set(initialTasks.map(t => t.subject)))];
 
@@ -198,10 +203,21 @@ export default function TasksPage() {
     setTasks(tasks.filter(task => task.id !== taskId));
   };
   
-  const handleToggleComplete = (taskId: number) => {
-    setTasks(tasks.map(task => 
-      task.id === taskId ? { ...task, isCompleted: !task.isCompleted, status: !task.isCompleted ? "Done" : "Not Started" } : task
-    ));
+  const handleToggleComplete = (taskId: number, isCompleted: boolean) => {
+    if (isCompleted) {
+      setAnimatingTaskId(taskId);
+      // Strikethrough immediately
+      setTasks(tasks => tasks.map(task => 
+        task.id === taskId ? { ...task, isCompleted: true, status: "Done" } : task
+      ));
+      setTimeout(() => {
+        setAnimatingTaskId(null);
+      }, 500); // Animation duration
+    } else {
+       setTasks(tasks.map(task => 
+        task.id === taskId ? { ...task, isCompleted: false, status: "Not Started" } : task
+      ));
+    }
   }
 
   const handleInputChange = (field: keyof typeof taskDetails, value: string) => {
@@ -293,6 +309,7 @@ export default function TasksPage() {
                     onToggleComplete={handleToggleComplete}
                     onEdit={handleOpenDialog}
                     onDelete={handleDeleteTask}
+                    isAnimating={animatingTaskId === task.id}
                     />
                 )) : (
                     <p className="p-4 text-center text-muted-foreground bg-muted/50 rounded-lg">No active tasks. Well done!</p>
@@ -314,6 +331,7 @@ export default function TasksPage() {
                     onToggleComplete={handleToggleComplete}
                     onEdit={handleOpenDialog}
                     onDelete={handleDeleteTask}
+                    isAnimating={false}
                     />
                 ))}
             </div>
