@@ -33,10 +33,12 @@ type Member = {
   avatarHint: string;
 };
 
+type TaskStatus = "In Progress" | "Completed" | "To Do";
+
 type SharedTask = {
   id: number;
   title: string;
-  status: "In Progress" | "Completed" | "To Do";
+  status: TaskStatus;
   assignee: string; // Member name
   dueDate: Date;
 };
@@ -118,36 +120,36 @@ export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>(initialGroups);
   const [selectedGroupId, setSelectedGroupId] = useState(1);
   const selectedGroup = groups.find(g => g.id === selectedGroupId) || groups[0];
-
-  const handleAssigneeChange = (taskId: number, newAssignee: string) => {
-    const updatedGroups = groups.map(group => {
+  
+  const updateTask = (taskId: number, updatedProperties: Partial<SharedTask>) => {
+    setGroups(groups.map(group => {
         if (group.id === selectedGroupId) {
             return {
                 ...group,
                 tasks: group.tasks.map(task => 
-                    task.id === taskId ? { ...task, assignee: newAssignee } : task
+                    task.id === taskId ? { ...task, ...updatedProperties } : task
                 )
             };
         }
         return group;
-    });
-    setGroups(updatedGroups);
+    }));
+  };
+
+  const handleTitleChange = (taskId: number, newTitle: string) => {
+    updateTask(taskId, { title: newTitle });
+  };
+  
+  const handleStatusChange = (taskId: number, newStatus: TaskStatus) => {
+    updateTask(taskId, { status: newStatus });
+  };
+
+  const handleAssigneeChange = (taskId: number, newAssignee: string) => {
+    updateTask(taskId, { assignee: newAssignee });
   };
 
   const handleDueDateChange = (taskId: number, newDueDate: Date | undefined) => {
     if (!newDueDate) return;
-    const updatedGroups = groups.map(group => {
-        if (group.id === selectedGroupId) {
-            return {
-                ...group,
-                tasks: group.tasks.map(task => 
-                    task.id === taskId ? { ...task, dueDate: newDueDate } : task
-                )
-            };
-        }
-        return group;
-    });
-    setGroups(updatedGroups);
+    updateTask(taskId, { dueDate: newDueDate });
   };
 
   return (
@@ -213,9 +215,26 @@ export default function GroupsPage() {
                             <TableBody>
                                 {selectedGroup.tasks.map((task) => (
                                 <TableRow key={task.id}>
-                                    <TableCell className="font-medium">{task.title}</TableCell>
+                                    <TableCell className="font-medium">
+                                      <Input 
+                                        value={task.title}
+                                        onChange={(e) => handleTitleChange(task.id, e.target.value)}
+                                        className="border-0 bg-transparent shadow-none p-0 focus-visible:ring-0 focus-visible:bg-muted"
+                                      />
+                                    </TableCell>
                                     <TableCell>
-                                        <Badge variant={getStatusBadgeVariant(task.status)}>{task.status}</Badge>
+                                        <Select value={task.status} onValueChange={(value: TaskStatus) => handleStatusChange(task.id, value)}>
+                                            <SelectTrigger className="border-0 bg-transparent shadow-none w-auto gap-1 p-0 h-auto focus:ring-0">
+                                              <Badge variant={getStatusBadgeVariant(task.status)}>
+                                                <SelectValue />
+                                              </Badge>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="To Do">To Do</SelectItem>
+                                                <SelectItem value="In Progress">In Progress</SelectItem>
+                                                <SelectItem value="Completed">Completed</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </TableCell>
                                     <TableCell>
                                         <Select value={task.assignee} onValueChange={(value) => handleAssigneeChange(task.id, value)}>
@@ -288,4 +307,3 @@ export default function GroupsPage() {
     </div>
   );
 }
-
