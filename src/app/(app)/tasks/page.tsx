@@ -132,7 +132,6 @@ export default function TasksPage() {
   const [filter, setFilter] = useState('All');
   const [subjectFilter, setSubjectFilter] = useState('All');
   const [showConfetti, setShowConfetti] = useState(false);
-  const [completedTaskId, setCompletedTaskId] = useState<number | null>(null);
 
   const subjects = ['All', ...Array.from(new Set(initialTasks.map(t => t.subject)))];
 
@@ -141,21 +140,6 @@ export default function TasksPage() {
     subject: "",
     dueDate: "",
   });
-
-  useEffect(() => {
-    if (completedTaskId !== null) {
-        const timer = setTimeout(() => {
-            setTasks(currentTasks => 
-                currentTasks.map(task => 
-                    task.id === completedTaskId ? { ...task, status: "Done" } : task
-                )
-            );
-            setCompletedTaskId(null);
-        }, 2000); // Wait for animations
-        return () => clearTimeout(timer);
-    }
-  }, [completedTaskId]);
-
 
   const resetForm = () => {
     setTaskDetails({
@@ -218,12 +202,24 @@ export default function TasksPage() {
   
   const handleToggleComplete = (taskId: number, isCompleted: boolean) => {
     if (isCompleted) {
-      setCompletedTaskId(taskId);
       setShowConfetti(true);
-      // Immediately update visual state
-      setTasks(tasks => tasks.map(task => 
-        task.id === taskId ? { ...task, isCompleted: true } : task
-      ));
+      
+      // Immediately update the task's visual state
+      setTasks(currentTasks => 
+        currentTasks.map(task => 
+          task.id === taskId ? { ...task, isCompleted: true } : task
+        )
+      );
+
+      // Delay the status change and moving the task
+      setTimeout(() => {
+        setTasks(currentTasks => 
+          currentTasks.map(task => 
+            task.id === taskId ? { ...task, status: "Done" } : task
+          )
+        );
+      }, 2000); 
+
     } else {
        setTasks(tasks.map(task => 
         task.id === taskId ? { ...task, isCompleted: false, status: "Not Started" } : task
