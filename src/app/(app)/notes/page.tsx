@@ -275,7 +275,7 @@ export default function NotesPage() {
   }
 
   return (
-    <div className="space-y-8 px-16">
+    <div className="space-y-8 max-w-4xl mx-auto">
        <Breadcrumb>
         <BreadcrumbList>
             <BreadcrumbItem>
@@ -317,7 +317,7 @@ export default function NotesPage() {
         </div>
       </div>
 
-      <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="space-y-6">
         {filteredNotes.length > 0 ? (
           filteredNotes.map((note) => {
             const category = getCategoryForNote(note.subject);
