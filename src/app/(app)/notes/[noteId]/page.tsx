@@ -24,7 +24,7 @@ const initialNotes = [
     subject: "Calculus",
     image: "https://placehold.co/300x200",
     imageHint: "mathematics graph",
-    chapters: [{id: 1, title: "Chapter 1: Limits"}, {id: 2, title: "Chapter 2: Derivatives"}]
+    chapters: [{id: 1, title: "Chapter 1: Limits", content: "Markdown content for limits..."}, {id: 2, title: "Chapter 2: Derivatives", content: "Markdown content for derivatives..."}]
   },
   { 
     id: 2, 
@@ -68,6 +68,7 @@ const initialNotes = [
 type Chapter = {
   id: number;
   title: string;
+  content: string;
 };
 
 type Note = typeof initialNotes[0];
@@ -93,6 +94,7 @@ export default function NoteDetailPage() {
     const newChapter = {
       id: note.chapters.length > 0 ? Math.max(...note.chapters.map(c => c.id)) + 1 : 1,
       title: newChapterTitle,
+      content: `# ${newChapterTitle}\n\nStart writing here...`,
     };
     const updatedNote = { ...note, chapters: [...note.chapters, newChapter] };
     setNote(updatedNote);
@@ -145,9 +147,11 @@ export default function NoteDetailPage() {
         <CardContent className="space-y-3">
           {note.chapters.length > 0 ? (
             note.chapters.map((chapter) => (
-              <div key={chapter.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
-                <p className="font-medium">{chapter.title}</p>
-                <Button variant="ghost" size="icon" onClick={() => handleDeleteChapter(chapter.id)}>
+              <div key={chapter.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg group">
+                <Link href={`/notes/${noteId}/${chapter.id}`} className="font-medium hover:underline flex-grow">
+                    {chapter.title}
+                </Link>
+                <Button variant="ghost" size="icon" onClick={() => handleDeleteChapter(chapter.id)} className="opacity-0 group-hover:opacity-100">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
