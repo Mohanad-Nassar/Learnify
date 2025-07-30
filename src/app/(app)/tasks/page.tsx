@@ -96,7 +96,7 @@ const TaskItem = ({ task, onToggleComplete, onEdit, onDelete }: { task: Task; on
   return (
      <Card 
         className="hover:shadow-md transition-all duration-300"
-        onDoubleClick={() => !task.isCompleted && onToggleComplete(task.id, true)}
+        onDoubleClick={() => onToggleComplete(task.id, !task.isCompleted)}
      >
       <CardContent className="p-4 flex items-center">
         <Checkbox
