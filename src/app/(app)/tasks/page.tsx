@@ -132,6 +132,24 @@ export default function TasksPage() {
   const [filter, setFilter] = useState('All');
   const [subjectFilter, setSubjectFilter] = useState('All');
   const [showConfetti, setShowConfetti] = useState(false);
+  const newlyCompletedTaskRef = useRef<number | null>(null);
+
+
+  useEffect(() => {
+    if (newlyCompletedTaskRef.current !== null) {
+      const taskId = newlyCompletedTaskRef.current;
+      const timeoutId = setTimeout(() => {
+        setTasks(currentTasks =>
+          currentTasks.map(task =>
+            task.id === taskId ? { ...task, status: "Done" } : task
+          )
+        );
+        newlyCompletedTaskRef.current = null;
+      }, 2000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [tasks]);
 
   const subjects = ['All', ...Array.from(new Set(initialTasks.map(t => t.subject)))];
 
@@ -203,28 +221,14 @@ export default function TasksPage() {
   const handleToggleComplete = (taskId: number, isCompleted: boolean) => {
     if (isCompleted) {
       setShowConfetti(true);
-      
-      // Immediately update the task's visual state
-      setTasks(currentTasks => 
-        currentTasks.map(task => 
-          task.id === taskId ? { ...task, isCompleted: true } : task
-        )
-      );
-
-      // Delay the status change and moving the task
-      setTimeout(() => {
-        setTasks(currentTasks => 
-          currentTasks.map(task => 
-            task.id === taskId ? { ...task, status: "Done" } : task
-          )
-        );
-      }, 2000); 
-
-    } else {
-       setTasks(tasks.map(task => 
-        task.id === taskId ? { ...task, isCompleted: false, status: "Not Started" } : task
-      ));
+      newlyCompletedTaskRef.current = taskId;
     }
+    
+    setTasks(currentTasks =>
+      currentTasks.map(task =>
+        task.id === taskId ? { ...task, isCompleted, status: isCompleted ? 'In Progress' : 'Not Started' } : task
+      )
+    );
   }
 
   const handleInputChange = (field: keyof typeof taskDetails, value: string) => {
@@ -240,8 +244,8 @@ export default function TasksPage() {
     return filterCondition && subjectCondition;
   });
 
-  const incompleteTasks = baseFilteredTasks.filter(task => !task.isCompleted);
-  const completedTasks = baseFilteredTasks.filter(task => task.isCompleted);
+  const incompleteTasks = baseFilteredTasks.filter(task => task.status !== "Done");
+  const completedTasks = baseFilteredTasks.filter(task => task.status === "Done");
 
   return (
     <div className="space-y-8 p-4 md:p-8 bg-background text-foreground">
