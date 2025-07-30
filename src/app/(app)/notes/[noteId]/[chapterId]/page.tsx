@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter, usePathname } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -129,6 +129,7 @@ export default function ChapterPage() {
   const handleSave = () => {
     // In a real app, this would save to a database.
     console.log("Saved content:", chapterContent);
+    // Here we would update the source of truth for the chapter content
     setIsEditing(false);
   }
 
@@ -189,10 +190,8 @@ export default function ChapterPage() {
             <Card className="h-[calc(100vh-10rem)] flex flex-col">
               <div className="p-4 border-b flex items-center justify-between">
                   <h1 className="text-2xl font-bold">{chapter.title}</h1>
-                  {isEditing ? (
+                  {isEditing && (
                     <Button onClick={handleSave}>Save Changes</Button>
-                  ) : (
-                    <Button onClick={() => setIsEditing(true)}>Edit</Button>
                   )}
               </div>
               <div className="flex-1 overflow-auto">
@@ -202,11 +201,12 @@ export default function ChapterPage() {
                         onChange={(e) => setChapterContent(e.target.value)}
                         className="w-full h-full border-0 resize-none focus-visible:ring-0 p-6 text-base"
                         placeholder="Start writing your notes using Markdown..."
+                        autoFocus
                     />
                 ) : (
                   <div className="prose prose-lg dark:prose-invert max-w-none p-8" onClick={() => setIsEditing(true)}>
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {chapterContent}
+                        {chapterContent || 'Click here to start writing...'}
                     </ReactMarkdown>
                   </div>
                 )}
@@ -216,4 +216,3 @@ export default function ChapterPage() {
     </SidebarProvider>
   );
 }
-
