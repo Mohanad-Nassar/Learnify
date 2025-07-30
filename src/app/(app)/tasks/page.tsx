@@ -221,9 +221,6 @@ export default function TasksPage() {
     <div className="space-y-8 p-4 md:p-8 bg-background text-foreground">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Tasks</h1>
-        <Button onClick={() => handleOpenDialog(null)} className="bg-primary text-primary-foreground hover:bg-primary/90">
-             Add Task
-        </Button>
       </div>
       
       <div className="flex items-center space-x-2">
@@ -279,7 +276,12 @@ export default function TasksPage() {
         </Dialog>
 
         <div>
-            <h2 className="text-xl font-semibold mt-6 mb-4">Task List</h2>
+            <div className="flex items-center justify-between mt-6 mb-4">
+              <h2 className="text-xl font-semibold">Task List</h2>
+              <Button onClick={() => handleOpenDialog(null)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                Add Task
+              </Button>
+            </div>
             <Card>
                 <CardContent className="p-0">
                     <div className="space-y-4">
