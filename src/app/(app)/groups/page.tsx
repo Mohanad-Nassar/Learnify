@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { useState, useRef } from "react";
@@ -318,23 +319,22 @@ export default function GroupsPage() {
       <div className="md:col-span-3">
         {selectedGroup && (
           <div className="space-y-8">
-             <Input 
-                value={selectedGroup.name}
-                onChange={(e) => handleGroupNameChange(selectedGroup.id, e.target.value)}
-                className="text-3xl font-bold border-0 shadow-none focus-visible:ring-0 p-0 h-auto"
-              />
+             <div className="flex items-center gap-4">
+               <Input 
+                  value={selectedGroup.name}
+                  onChange={(e) => handleGroupNameChange(selectedGroup.id, e.target.value)}
+                  className="text-3xl font-bold border-0 shadow-none focus-visible:ring-0 p-0 h-auto flex-grow"
+                />
+                <div className="flex -space-x-2">
+                  {selectedGroup.members.map((member) => (
+                    <Avatar key={member.name}>
+                      <AvatarImage src={member.avatar} data-ai-hint={member.avatarHint} />
+                      <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                  ))}
+                </div>
+             </div>
 
-            <div>
-              <h3 className="text-xl font-semibold mb-3">Members</h3>
-              <div className="flex space-x-2">
-                {selectedGroup.members.map((member) => (
-                  <Avatar key={member.name}>
-                    <AvatarImage src={member.avatar} data-ai-hint={member.avatarHint} />
-                    <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                ))}
-              </div>
-            </div>
 
             <div>
               <div className="flex justify-between items-center mb-3">
@@ -554,4 +554,3 @@ export default function GroupsPage() {
     </div>
   );
 }
-
