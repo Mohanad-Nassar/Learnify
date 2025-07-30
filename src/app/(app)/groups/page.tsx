@@ -1,5 +1,4 @@
 
-
 'use client'
 
 import { useState, useRef } from "react";
@@ -27,8 +26,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Paperclip, Send } from "lucide-react";
+import { Paperclip, Send, Plus, CalendarIcon, Edit } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 type Member = {
   name: string;
@@ -128,6 +129,9 @@ export default function GroupsPage() {
   const [attachment, setAttachment] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [newTaskDetails, setNewTaskDetails] = useState({ title: "", assignee: "", dueDate: new Date() });
+
   const selectedGroup = groups.find(g => g.id === selectedGroupId) || groups[0];
   
   const updateTask = (taskId: number, updatedProperties: Partial<SharedTask>) => {
@@ -143,6 +147,48 @@ export default function GroupsPage() {
         return group;
     }));
   };
+  
+  const handleAddNewTask = () => {
+    if (!newTaskDetails.title || !newTaskDetails.assignee) {
+      alert("Please fill out all fields for the new task.");
+      return;
+    }
+    const newTask: SharedTask = {
+      id: Date.now(), // simple unique id
+      title: newTaskDetails.title,
+      status: "To Do",
+      assignee: newTaskDetails.assignee,
+      dueDate: newTaskDetails.dueDate
+    };
+    setGroups(groups.map(group => {
+      if (group.id === selectedGroupId) {
+        return {
+          ...group,
+          tasks: [...group.tasks, newTask]
+        };
+      }
+      return group;
+    }));
+    setIsTaskDialogOpen(false);
+    setNewTaskDetails({ title: "", assignee: "", dueDate: new Date() }); // Reset form
+  };
+
+  const handleChangeGroupPicture = (groupId: number) => {
+    const placeholderImages = [
+      "https://placehold.co/100x100",
+      "https://placehold.co/100x101",
+      "https://placehold.co/101x100",
+      "https://placehold.co/101x101",
+    ];
+    setGroups(groups.map(group => {
+      if (group.id === groupId) {
+        const currentImageIndex = placeholderImages.indexOf(group.image);
+        const nextImageIndex = (currentImageIndex + 1) % placeholderImages.length;
+        return { ...group, image: placeholderImages[nextImageIndex] };
+      }
+      return group;
+    }));
+  }
 
   const handleTitleChange = (taskId: number, newTitle: string) => {
     updateTask(taskId, { title: newTitle });
@@ -205,25 +251,34 @@ export default function GroupsPage() {
         <h2 className="text-2xl font-bold mb-4">Groups</h2>
         <div className="space-y-2">
             {groups.map((group) => (
-            <button
-                key={group.id}
-                onClick={() => setSelectedGroupId(group.id)}
-                className={cn(
-                "w-full flex items-center space-x-3 p-3 rounded-lg text-left transition-colors",
-                selectedGroupId === group.id
-                    ? "bg-muted"
-                    : "hover:bg-muted/50"
-                )}
-            >
-                <Avatar className="h-10 w-10">
-                    <AvatarImage src={group.image} data-ai-hint={group.imageHint} />
-                    <AvatarFallback>{group.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                <p className="font-semibold">{group.name}</p>
-                <p className="text-sm text-muted-foreground">{group.membersCount} members</p>
-                </div>
-            </button>
+              <div key={group.id} className="relative group/item">
+                <button
+                    onClick={() => setSelectedGroupId(group.id)}
+                    className={cn(
+                    "w-full flex items-center space-x-3 p-3 rounded-lg text-left transition-colors",
+                    selectedGroupId === group.id
+                        ? "bg-muted"
+                        : "hover:bg-muted/50"
+                    )}
+                >
+                    <Avatar className="h-10 w-10">
+                        <AvatarImage src={group.image} data-ai-hint={group.imageHint} />
+                        <AvatarFallback>{group.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                    <p className="font-semibold">{group.name}</p>
+                    <p className="text-sm text-muted-foreground">{group.membersCount} members</p>
+                    </div>
+                </button>
+                 <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute top-1/2 -translate-y-1/2 right-2 h-7 w-7 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                    onClick={() => handleChangeGroupPicture(group.id)}
+                  >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </div>
             ))}
         </div>
         <Button variant="outline" className="w-full mt-4">Create Group</Button>
@@ -247,7 +302,12 @@ export default function GroupsPage() {
             </div>
 
             <div>
-              <h3 className="text-xl font-semibold mb-3">Shared Tasks</h3>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-xl font-semibold">Shared Tasks</h3>
+                <Button onClick={() => setIsTaskDialogOpen(true)} size="sm">
+                  <Plus className="h-4 w-4 mr-2" /> Add Task
+                </Button>
+              </div>
                 <Card>
                     <CardContent className="p-0">
                         <Table>
@@ -375,6 +435,63 @@ export default function GroupsPage() {
           </div>
         )}
       </div>
+      <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add a new shared task</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="task-title">Task Title</Label>
+              <Input
+                id="task-title"
+                value={newTaskDetails.title}
+                onChange={(e) => setNewTaskDetails({ ...newTaskDetails, title: e.target.value })}
+                placeholder="e.g. Review chapter 10"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="task-assignee">Assign To</Label>
+              <Select
+                value={newTaskDetails.assignee}
+                onValueChange={(value) => setNewTaskDetails({ ...newTaskDetails, assignee: value })}
+              >
+                <SelectTrigger id="task-assignee">
+                  <SelectValue placeholder="Select a member" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedGroup?.members.map(member => (
+                    <SelectItem key={member.name} value={member.name}>{member.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Due Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(newTaskDetails.dueDate, "PPP")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={newTaskDetails.dueDate}
+                    onSelect={(date) => date && setNewTaskDetails({ ...newTaskDetails, dueDate: date })}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTaskDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddNewTask}>Add Task</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
