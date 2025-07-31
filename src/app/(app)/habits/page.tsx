@@ -135,7 +135,7 @@ const calculateStreak = (habit: Habit): number => {
         const weekOptions = { weekStartsOn: 1 as const };
         let currentWeekStart = startOfWeek(today, weekOptions);
         
-        const completionsInCurrentWeek = sortedDates.filter(d => 
+        let completionsInCurrentWeek = sortedDates.filter(d => 
             isWithinInterval(d, { start: currentWeekStart, end: endOfWeek(currentWeekStart, weekOptions) })
         ).length;
 
@@ -325,11 +325,15 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
                                             {getMonthMatrix(getYear(today), month).flat().map((day, index) => {
                                                  if (!day) return <div key={`empty-${index}`} className="w-5 h-5" />;
                                                  const isCompleted = completionDates.has(format(day, 'yyyy-MM-dd'));
+                                                 const isTodayDate = isToday(day);
                                                  return (
                                                      <Tooltip key={day.toString()}>
                                                          <TooltipTrigger asChild>
                                                              <button 
-                                                                className={cn("w-5 h-5 rounded-sm transition-colors", isCompleted ? 'bg-primary hover:bg-primary/80' : 'bg-muted/50 hover:bg-muted')}
+                                                                className={cn("w-5 h-5 rounded-sm transition-colors", 
+                                                                    isCompleted ? 'bg-primary hover:bg-primary/80' : 'bg-muted/50 hover:bg-muted',
+                                                                    isTodayDate && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                                                                )}
                                                                 onClick={() => onToggleCompletion(day)}
                                                               />
                                                          </TooltipTrigger>
@@ -537,7 +541,7 @@ export default function HabitsPage() {
           const completedDays = habit.days.filter(Boolean).length;
           const goalLabel = goalOptions.find(g => g.value === habit.goal)?.label || `${habit.goal} times a week`;
           const streakType = habit.goal >= 7 ? 'day' : 'week';
-
+          const todayIndex = getDay(new Date()) === 0 ? 6 : getDay(new Date()) - 1;
 
           return(
           <Card key={habit.id} className="shadow-md flex flex-col">
@@ -597,7 +601,7 @@ export default function HabitsPage() {
             <CardFooter className="flex justify-around bg-muted/50 py-3 mt-auto">
               {dayLabels.map((day, dayIndex) => (
                 <div key={day} className="flex flex-col items-center gap-2">
-                  <label className="text-xs font-medium text-muted-foreground">{day}</label>
+                  <label className={cn("text-xs font-medium text-muted-foreground", dayIndex === todayIndex && "text-primary font-bold")}>{day}</label>
                   <Checkbox 
                     checked={habit.days[dayIndex]} 
                     onCheckedChange={() => handleToggleDay(habit.id, dayIndex)}
