@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO, startOfToday, startOfDay } from 'date-fns';
+import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO, startOfToday, startOfDay, differenceInCalendarDays } from 'date-fns';
 
 
 type Habit = {
@@ -95,29 +95,33 @@ const calculateStreak = (habit: Habit): number => {
     const sortedCompletions = completions.map(c => startOfDay(parseISO(c))).sort((a, b) => b.getTime() - a.getTime());
 
     if (sortedCompletions.length === 0) return 0;
-
+    
     let streak = 0;
     const today = startOfToday();
 
     if (goal === 7) { // Daily streak logic
-        let currentDate = today;
-        const completionSet = new Set(sortedCompletions.map(d => d.getTime()));
-        
-        // The streak can start from today or yesterday.
-        // If today is not completed, the streak must have ended yesterday.
-        if (!completionSet.has(currentDate.getTime())) {
-            currentDate = subDays(currentDate, 1);
-        }
+      const mostRecentCompletion = sortedCompletions[0];
 
-        while (completionSet.has(currentDate.getTime())) {
-            streak++;
-            currentDate = subDays(currentDate, 1);
+      // If the most recent completion wasn't today or yesterday, the streak is 0.
+      if (differenceInCalendarDays(today, mostRecentCompletion) > 1) {
+          return 0;
+      }
+      
+      streak = 1;
+      // Loop through the rest of the completions
+      for (let i = 1; i < sortedCompletions.length; i++) {
+        const diff = differenceInCalendarDays(sortedCompletions[i-1], sortedCompletions[i]);
+        if (diff === 1) {
+          streak++;
+        } else {
+          // Found a gap, so the streak ends here.
+          break;
         }
+      }
 
     } else { // Weekly streak logic
         let currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
         
-        // Check if current week's goal is met to include it in the streak
         const completionsInCurrentWeek = sortedCompletions.filter(d => 
             isWithinInterval(d, { start: currentWeekStart, end: endOfWeek(currentWeekStart, { weekStartsOn: 1 }) })
         ).length;
@@ -136,9 +140,9 @@ const calculateStreak = (habit: Habit): number => {
 
             if (completionsInWeek >= goal) {
                 streak++;
-                currentWeekStart = startOfWeek(subDays(weekStart, 7), { weekStartsOn: 1 }); // Move to previous week
+                currentWeekStart = startOfWeek(subDays(weekStart, 7), { weekStartsOn: 1 });
             } else {
-                break; // Streak is broken
+                break;
             }
         }
     }
@@ -162,9 +166,7 @@ export default function HabitsPage() {
                 const weekStart = startOfWeek(today, { weekStartsOn: 1 });
                 const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
 
-                // Simple migration for users who used the app before streaks and date-based completions
                 const migratedHabits = parsedHabits.map((h: any) => {
-                     // Reset weekly checkboxes if the week has changed
                     const lastCompletionDate = h.completions && h.completions.length > 0
                         ? new Date(Math.max.apply(null, h.completions.map((c: string) => new Date(c).getTime())))
                         : new Date(0);
@@ -230,7 +232,7 @@ export default function HabitsPage() {
                 id: habits.length > 0 ? Math.max(...habits.map(h => h.id)) + 1 : 1,
                 title: habitDetails.title,
                 goal: habitDetails.goal,
-                iconName: 'Target', // Default icon for new habits
+                iconName: 'Target',
                 days: Array(7).fill(false),
                 completions: [],
                 currentStreak: 0,
@@ -261,12 +263,10 @@ export default function HabitsPage() {
             const dateISO = dateForDayIndex.toISOString();
     
             if (newDays[dayIndex]) {
-              // Add to completions if it's not already there
               if (!newCompletions.some(c => isSameDay(parseISO(c), dateForDayIndex))) {
                 newCompletions.push(dateISO);
               }
             } else {
-              // Remove from completions
               newCompletions = newCompletions.filter(c => !isSameDay(parseISO(c), dateForDayIndex));
             }
 
