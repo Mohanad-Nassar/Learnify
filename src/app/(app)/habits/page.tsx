@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { useState, useEffect, useMemo } from "react"
@@ -270,8 +271,7 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
                     <DialogTitle>{habit.title}: Progress Report</DialogTitle>
                     <DialogDescription>Click on a day in the heatmap to toggle its completion status.</DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="max-h-[70vh]">
-                <div className="space-y-6 py-4 pr-6">
+                <div className="space-y-6 py-4">
                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                         <Card>
                             <CardHeader className="p-4">
@@ -298,7 +298,7 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
                             </CardHeader>
                         </Card>
                     </div>
-
+                    <ScrollArea className="max-h-[50vh] pr-6">
                     <div>
                         <h3 className="text-lg font-semibold mb-2 text-center">Activity Heatmap ({getYear(today)})</h3>
                         <TooltipProvider>
@@ -331,8 +331,8 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
                         </div>
                         </TooltipProvider>
                     </div>
+                    </ScrollArea>
                 </div>
-                </ScrollArea>
                  <DialogFooter>
                     <Button variant="outline" onClick={onClose}>Close</Button>
                 </DialogFooter>
