@@ -162,7 +162,7 @@ export default function TasksPage() {
   }, [tasks]);
 
 
-  const subjectOptions = ['All', ...subjects.map(s => s.name)];
+  const subjectOptions = ['All', ...subjects.map(s => s.name), 'General'];
 
   const [taskDetails, setTaskDetails] = useState({
     title: "",
@@ -373,5 +373,3 @@ export default function TasksPage() {
     </div>
   )
 }
-
-    
