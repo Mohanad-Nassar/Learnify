@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO } from 'date-fns';
+import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO, startOfToday } from 'date-fns';
 
 
 type Habit = {
@@ -92,32 +92,28 @@ const calculateProgress = (days: boolean[], goal: number) => {
 
 const calculateStreak = (habit: Habit): number => {
     const { completions, goal } = habit;
-    const sortedCompletions = completions.map(c => parseISO(c)).sort((a, b) => b.getTime() - a.getTime());
+    const sortedCompletions = completions.map(c => startOfDay(parseISO(c))).sort((a, b) => b.getTime() - a.getTime());
 
     if (sortedCompletions.length === 0) return 0;
 
     let streak = 0;
+    const today = startOfToday();
 
     if (goal === 7) { // Daily streak logic
-        let currentDate = new Date();
+        let currentDate = today;
+        const completionSet = new Set(sortedCompletions.map(d => d.getTime()));
         
-        // If today is not in completions, start checking from yesterday
-        if (!sortedCompletions.some(d => isSameDay(d, currentDate))) {
+        // The streak can start from today or yesterday.
+        // If today is not completed, the streak must have ended yesterday.
+        if (!completionSet.has(currentDate.getTime())) {
             currentDate = subDays(currentDate, 1);
         }
 
-        // Iterate backwards from today (or yesterday)
-        for (let i = 0; ; i++) {
-            const dateToCheck = currentDate;
-            const completionExists = sortedCompletions.some(d => isSameDay(d, dateToCheck));
-            
-            if (completionExists) {
-                streak++;
-                currentDate = subDays(currentDate, 1); // Move to the previous day
-            } else {
-                break; // Streak is broken
-            }
+        while (completionSet.has(currentDate.getTime())) {
+            streak++;
+            currentDate = subDays(currentDate, 1);
         }
+
     } else { // Weekly streak logic
         let currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
         
@@ -414,4 +410,3 @@ export default function HabitsPage() {
     </div>
   )
 }
-
