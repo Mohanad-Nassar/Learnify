@@ -52,7 +52,7 @@ const initialHabits: Habit[] = [
     title: "Read for 30 minutes",
     iconName: "BookOpen",
     goal: 7,
-    days: [true, true, true, true, false, true, false],
+    days: [false, false, false, false, false, false, false],
     completions: [],
     currentStreak: 0,
   },
@@ -61,7 +61,7 @@ const initialHabits: Habit[] = [
     title: "Morning workout",
     iconName: "Dumbbell",
     goal: 5,
-    days: [true, false, true, true, false, true, true],
+    days: [false, false, false, false, false, false, false],
     completions: [],
     currentStreak: 0,
   },
@@ -70,7 +70,7 @@ const initialHabits: Habit[] = [
     title: "Review Spanish flashcards",
     iconName: "Repeat",
     goal: 7,
-    days: [true, false, true, false, true, false, false],
+    days: [false, false, false, false, false, false, false],
     completions: [],
     currentStreak: 0,
   },
@@ -79,7 +79,7 @@ const initialHabits: Habit[] = [
     title: "Work on side project",
     iconName: "Target",
     goal: 3,
-    days: [false, true, false, false, true, false, false],
+    days: [false, false, false, false, false, false, false],
     completions: [],
     currentStreak: 0,
   },
@@ -93,8 +93,9 @@ const calculateProgress = (days: boolean[], goal: number) => {
     return Math.min(Math.round((completedDays / goal) * 100), 100);
 }
 
-const calculateStreak = (habit: Habit, isLongest: boolean = false): number => {
+const calculateStreak = (habit: Habit): number => {
     const { completions, goal } = habit;
+    // 1. Get all unique completion dates and sort them from most recent to oldest.
     const sortedDates = [...new Set(completions)].map(c => parseISO(c)).sort((a, b) => b.getTime() - a.getTime());
 
     if (sortedDates.length === 0) return 0;
@@ -102,115 +103,126 @@ const calculateStreak = (habit: Habit, isLongest: boolean = false): number => {
     const today = startOfToday();
 
     if (goal === 7) { // Daily streak logic
+        // 2a. Check if the streak is currently active. It's active if the last completion was today or yesterday.
         const mostRecentCompletion = sortedDates[0];
         const diffFromToday = differenceInCalendarDays(today, mostRecentCompletion);
 
-        if (!isLongest && diffFromToday > 1) {
-            return 0; // Current streak is broken if last completion was more than a day ago
+        if (diffFromToday > 1) {
+            return 0; // Streak is broken if the last completion was more than a day ago.
         }
 
-        let longestStreak = 0;
-        let currentStreak = 0;
-
-        if (diffFromToday <= 1) { // Only start a streak if it's today or yesterday
-            currentStreak = 1;
-        }
-
+        // 3a. Count consecutive days backwards from the most recent completion.
+        let streak = 1;
         for (let i = 1; i < sortedDates.length; i++) {
             const date1 = sortedDates[i - 1];
             const date2 = sortedDates[i];
             const diff = differenceInCalendarDays(date1, date2);
 
             if (diff === 1) {
-                currentStreak++;
+                streak++; // The days are consecutive, so increment the streak.
             } else {
-                if (isLongest) {
-                    if (currentStreak > longestStreak) {
-                        longestStreak = currentStreak;
-                    }
-                    currentStreak = 1; // Start a new potential streak
+                break; // A gap was found, so the streak ends here.
+            }
+        }
+        return streak;
+
+    } else { // Weekly streak logic
+        // 2b. Determine the starting week for the streak calculation.
+        let currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+        
+        // If the goal for the *current* week hasn't been met yet, start counting from *last* week.
+        // This prevents the streak from being broken just because the current week isn't over.
+        const completionsInCurrentWeek = sortedDates.filter(d => 
+            isWithinInterval(d, { start: currentWeekStart, end: endOfWeek(currentWeekStart, { weekStartsOn: 1 }) })
+        ).length;
+
+        if (completionsInCurrentWeek < goal) {
+             currentWeekStart = startOfWeek(subDays(today, 7), { weekStartsOn: 1 });
+        }
+        
+        // 3b. Loop backwards through the weeks and count how many consecutive weeks the goal was met.
+        let streak = 0;
+        while (true) {
+            const weekStart = currentWeekStart;
+            const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+
+            const completionsInWeek = sortedDates.filter(d => 
+                isWithinInterval(d, { start: weekStart, end: weekEnd })
+            ).length;
+
+            if (completionsInWeek >= goal) {
+                streak++; // Goal met for this week, increment streak.
+                currentWeekStart = startOfWeek(subDays(weekStart, 7), { weekStartsOn: 1 }); // Move to the previous week.
+            } else {
+                break; // Goal not met, the streak is broken.
+            }
+        }
+        return streak;
+    }
+};
+
+const calculateLongestStreak = (habit: Habit): number => {
+    const { completions, goal } = habit;
+    const sortedDates = [...new Set(completions)].map(c => parseISO(c)).sort((a, b) => a.getTime() - b.getTime());
+
+    if (sortedDates.length === 0) return 0;
+
+    if (goal === 7) { // Daily longest streak
+        let longestStreak = 0;
+        let currentStreak = 0;
+
+        for (let i = 0; i < sortedDates.length; i++) {
+            if (i === 0) {
+                currentStreak = 1;
+            } else {
+                const diff = differenceInCalendarDays(sortedDates[i], sortedDates[i-1]);
+                if (diff === 1) {
+                    currentStreak++;
                 } else {
-                    break; // If not calculating longest, break at the first gap
+                    longestStreak = Math.max(longestStreak, currentStreak);
+                    currentStreak = 1;
                 }
             }
         }
-        if (currentStreak > longestStreak) {
-            longestStreak = currentStreak;
-        }
-
-        // Final check for current streak
-        if (!isLongest) {
-            // Recalculate just the current streak without resetting for longest
-             let current = 0;
-             if (diffFromToday <= 1) {
-                 current = 1;
-                 for (let i = 1; i < sortedDates.length; i++) {
-                    const date1 = sortedDates[i - 1];
-                    const date2 = sortedDates[i];
-                    if (differenceInCalendarDays(date1, date2) === 1) {
-                        current++;
-                    } else {
-                        break;
-                    }
-                }
-             }
-             return current;
-        }
-
-
+        longestStreak = Math.max(longestStreak, currentStreak);
         return longestStreak;
-
-    } else { // Weekly streak logic
+    } else { // Weekly longest streak
         const completionsByWeek: Record<string, number> = sortedDates.reduce((acc, date) => {
             const weekStartKey = format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
             acc[weekStartKey] = (acc[weekStartKey] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
 
-        const sortedWeekKeys = Object.keys(completionsByWeek).sort((a,b) => parseISO(b).getTime() - parseISO(a).getTime());
-        
+        const sortedWeekKeys = Object.keys(completionsByWeek).sort((a,b) => parseISO(a).getTime() - parseISO(b).getTime());
+
         let longestStreak = 0;
         let currentStreak = 0;
 
-        const currentWeekStartKey = format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-        const lastWeekStartKey = format(startOfWeek(subDays(today, 7), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-
-        let consecutiveWeeks = 0;
-        for (let i = 0; i < sortedWeekKeys.length; i++) {
+        for(let i=0; i<sortedWeekKeys.length; i++) {
             const weekKey = sortedWeekKeys[i];
-            if (completionsByWeek[weekKey] >= goal) {
+            if(completionsByWeek[weekKey] >= goal) {
                 if (i > 0) {
-                    const prevWeekKey = sortedWeekKeys[i-1];
-                    const diff = differenceInCalendarDays(parseISO(prevWeekKey), parseISO(weekKey));
-                    if(diff === 7) {
-                        consecutiveWeeks++;
-                    } else {
-                        if (consecutiveWeeks > longestStreak) longestStreak = consecutiveWeeks;
-                        consecutiveWeeks = 1; // Start new streak
-                    }
+                     const prevWeekKey = sortedWeekKeys[i-1];
+                     const diff = differenceInCalendarDays(parseISO(weekKey), parseISO(prevWeekKey));
+                     if(diff === 7) {
+                         currentStreak++;
+                     } else {
+                         longestStreak = Math.max(longestStreak, currentStreak);
+                         currentStreak = 1;
+                     }
                 } else {
-                    consecutiveWeeks = 1;
+                    currentStreak = 1;
                 }
             } else {
-                 if (consecutiveWeeks > longestStreak) longestStreak = consecutiveWeeks;
-                 consecutiveWeeks = 0;
-            }
-
-            if(consecutiveWeeks > longestStreak) longestStreak = consecutiveWeeks;
-
-            if(!isLongest && i === 0){ // Current streak calculation
-                if(weekKey === currentWeekStartKey || weekKey === lastWeekStartKey) {
-                    // streak is active
-                } else {
-                     consecutiveWeeks = 0; // streak is broken
-                }
-                currentStreak = consecutiveWeeks;
+                longestStreak = Math.max(longestStreak, currentStreak);
+                currentStreak = 0;
             }
         }
-        
-        return isLongest ? longestStreak : currentStreak;
+        longestStreak = Math.max(longestStreak, currentStreak);
+        return longestStreak;
     }
-};
+}
+
 
 const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { habit: Habit, isOpen: boolean, onClose: () => void, onToggleCompletion: (date: Date) => void }) => {
     if (!isOpen) return null;
@@ -219,9 +231,10 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
     const yearStart = startOfYear(today);
     const completionsInYear = habit.completions.filter(c => getYear(parseISO(c)) === getYear(today));
     const completionDates = useMemo(() => new Set(completionsInYear), [completionsInYear]);
-    const longestStreak = calculateStreak(habit, true);
+    const longestStreak = calculateLongestStreak(habit);
 
-    const completionRate = Math.round((completionsInYear.length / 365) * 100);
+    const totalDaysInYear = differenceInCalendarDays(endOfYear(today), startOfYear(today)) + 1;
+    const completionRate = Math.round((completionsInYear.length / totalDaysInYear) * 100);
 
     const getMonthMatrix = (year: number, month: number) => {
         const firstDay = new Date(year, month, 1);
@@ -229,7 +242,6 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
         const matrix = [];
         let week: (Date | null)[] = [];
 
-        // Fill initial empty days
         const startDayOfWeek = getDay(firstDay) === 0 ? 6 : getDay(firstDay) - 1; // Mon = 0
         for (let i = 0; i < startDayOfWeek; i++) {
             week.push(null);
@@ -640,3 +652,5 @@ export default function HabitsPage() {
     </div>
   )
 }
+
+    
