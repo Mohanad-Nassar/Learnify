@@ -102,20 +102,72 @@ const calculateStreak = (habit: Habit): number => {
     if (sortedDates.length === 0) return 0;
     const today = startOfToday();
 
-    if (goal === 7) { // Daily streak logic
+    if (goal >= 7) { // Daily streak logic
         let currentStreak = 0;
         let dayToCheck = today;
-        
-        // If today is not completed, check from yesterday
-        if(!completionDates.has(format(today, 'yyyy-MM-dd'))) {
-            dayToCheck = subDays(today, 1);
-        }
 
-        while(completionDates.has(format(dayToCheck, 'yyyy-MM-dd'))) {
+        if (completionDates.has(format(dayToCheck, 'yyyy-MM-dd'))) {
             currentStreak++;
             dayToCheck = subDays(dayToCheck, 1);
+        } else {
+            // if today is not complete, the streak might have ended yesterday
+            dayToCheck = subDays(today, 1);
         }
-        return currentStreak;
+        
+        while (completionDates.has(format(dayToCheck, 'yyyy-MM-dd'))) {
+            currentStreak++;
+            const prevDay = subDays(dayToCheck, 1);
+            if (differenceInCalendarDays(dayToCheck, prevDay) > 1) {
+                break;
+            }
+            dayToCheck = prevDay;
+        }
+
+        // if today is not complete, the streak is 0
+        if (!completionDates.has(format(today, 'yyyy-MM-dd'))) {
+             if (!completionDates.has(format(subDays(today,1), 'yyyy-MM-dd'))) return 0;
+        }
+
+        let finalStreak = 0;
+        let yesterday = subDays(today, 1);
+        if(completionDates.has(format(today, 'yyyy-MM-dd'))) finalStreak++;
+        else if (completionDates.has(format(yesterday, 'yyyy-MM-dd'))) finalStreak = 1;
+        else return 0;
+        
+        dayToCheck = subDays(today, 1);
+        if(!completionDates.has(format(today, 'yyyy-MM-dd'))) dayToCheck = subDays(today, 1);
+
+
+        let consecutive = true;
+        let idx = 0;
+        const compDates = Array.from(completionDates).map(d => parseISO(d)).sort((a,b) => b.getTime() - a.getTime());
+
+        if (compDates.length === 0) return 0;
+
+        // Check if today or yesterday is a completion date
+        const mostRecentCompletion = compDates[0];
+        if (!isToday(mostRecentCompletion) && differenceInCalendarDays(today, mostRecentCompletion) > 1) {
+            return 0; // Streak is broken
+        }
+
+        let streak = 0;
+        let expectedDate = today;
+        // If today is not completed, start checking from yesterday.
+        if (!completionDates.has(format(today, 'yyyy-MM-dd'))) {
+            expectedDate = subDays(today, 1);
+        }
+
+        for (const date of compDates) {
+             if (format(date, 'yyyy-MM-dd') === format(expectedDate, 'yyyy-MM-dd')) {
+                streak++;
+                expectedDate = subDays(expectedDate, 1);
+            } else if (format(date, 'yyyy-MM-dd') === format(subDays(expectedDate,1), 'yyyy-MM-dd')) {
+                 // this means a day was skipped
+                 break;
+            }
+        }
+        return streak;
+        
     } else { // Weekly streak logic
         const weekOptions = { weekStartsOn: 1 as const };
         let currentWeekStart = startOfWeek(today, weekOptions);
@@ -155,7 +207,7 @@ const calculateLongestStreak = (habit: Habit): number => {
 
     if (sortedDates.length === 0) return 0;
 
-    if (goal === 7) { // Daily longest streak
+    if (goal >= 7) { // Daily longest streak
         let longestStreak = 0;
         let currentStreak = 0;
         if (sortedDates.length > 0) {
@@ -273,13 +325,13 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
                         <Card>
                             <CardHeader className="p-4">
                                 <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
-                                <p className="text-2xl font-bold">{habit.currentStreak} {habit.goal === 7 ? 'days' : 'weeks'}</p>
+                                <p className="text-2xl font-bold">{habit.currentStreak} {habit.goal >= 7 ? 'days' : 'weeks'}</p>
                             </CardHeader>
                         </Card>
                          <Card>
                             <CardHeader className="p-4">
                                 <CardTitle className="text-sm font-medium">Longest Streak</CardTitle>
-                                <p className="text-2xl font-bold">{longestStreak} {habit.goal === 7 ? 'days' : 'weeks'}</p>
+                                <p className="text-2xl font-bold">{longestStreak} {habit.goal >= 7 ? 'days' : 'weeks'}</p>
                             </CardHeader>
                         </Card>
                          <Card>
@@ -521,7 +573,7 @@ export default function HabitsPage() {
           const progress = calculateProgress(habit.days, habit.goal);
           const completedDays = habit.days.filter(Boolean).length;
           const goalLabel = goalOptions.find(g => g.value === habit.goal)?.label || `${habit.goal} times a week`;
-          const streakType = habit.goal === 7 ? 'day' : 'week';
+          const streakType = habit.goal >= 7 ? 'day' : 'week';
 
 
           return(
@@ -648,4 +700,3 @@ export default function HabitsPage() {
 }
 
     
-
