@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO, startOfToday, differenceInCalendarDays, addDays, getYear, getMonth, getDate, endOfYear, startOfYear, isSameMonth } from 'date-fns';
+import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO, startOfToday, differenceInCalendarDays, addDays, getYear, getMonth, getDate, endOfYear, startOfYear, isSameMonth, getDay } from 'date-fns';
 import { Calendar } from "@/components/ui/calendar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -604,3 +604,4 @@ export default function HabitsPage() {
     </div>
   )
 }
+
