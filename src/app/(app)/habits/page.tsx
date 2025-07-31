@@ -92,33 +92,36 @@ const calculateProgress = (days: boolean[], goal: number) => {
 
 const calculateStreak = (habit: Habit): number => {
     const { completions, goal } = habit;
-    const sortedCompletions = completions.map(c => startOfDay(parseISO(c))).sort((a, b) => b.getTime() - a.getTime());
+    // Completions are stored as 'YYYY-MM-DD' strings to avoid timezone issues.
+    const sortedCompletions = completions.map(c => new Date(c)).sort((a, b) => b.getTime() - a.getTime());
 
     if (sortedCompletions.length === 0) return 0;
-    
+
     let streak = 0;
-    const today = startOfToday();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     if (goal === 7) { // Daily streak logic
-      const mostRecentCompletion = sortedCompletions[0];
+        const mostRecentCompletion = sortedCompletions[0];
+        
+        const diffFromToday = (today.getTime() - mostRecentCompletion.getTime()) / (1000 * 3600 * 24);
 
-      // If the most recent completion wasn't today or yesterday, the streak is 0.
-      if (differenceInCalendarDays(today, mostRecentCompletion) > 1) {
-          return 0;
-      }
-      
-      streak = 1;
-      // Loop through the rest of the completions
-      for (let i = 1; i < sortedCompletions.length; i++) {
-        const diff = differenceInCalendarDays(sortedCompletions[i-1], sortedCompletions[i]);
-        if (diff === 1) {
-          streak++;
-        } else {
-          // Found a gap, so the streak ends here.
-          break;
+        if (diffFromToday > 1) {
+            return 0; // Streak is broken if they missed yesterday.
         }
-      }
 
+        streak = 1;
+        for (let i = 1; i < sortedCompletions.length; i++) {
+            const date1 = sortedCompletions[i - 1];
+            const date2 = sortedCompletions[i];
+            const diff = (date1.getTime() - date2.getTime()) / (1000 * 3600 * 24);
+            
+            if (diff === 1) {
+                streak++;
+            } else {
+                break; // Not consecutive, so streak ends.
+            }
+        }
     } else { // Weekly streak logic
         let currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
         
@@ -254,20 +257,24 @@ export default function HabitsPage() {
         });
         const dateForDayIndex = weekDates[dayIndex];
     
+        // Format to YYYY-MM-DD to avoid timezone issues.
+        const dateString = format(dateForDayIndex, 'yyyy-MM-dd');
+    
         setHabits(habits.map(habit => {
           if (habit.id === habitId) {
             const newDays = [...habit.days];
             newDays[dayIndex] = !newDays[dayIndex];
             
             let newCompletions = [...habit.completions];
-            const dateISO = dateForDayIndex.toISOString();
-    
+            
             if (newDays[dayIndex]) {
-              if (!newCompletions.some(c => isSameDay(parseISO(c), dateForDayIndex))) {
-                newCompletions.push(dateISO);
+              // Add if it doesn't exist
+              if (!newCompletions.includes(dateString)) {
+                newCompletions.push(dateString);
               }
             } else {
-              newCompletions = newCompletions.filter(c => !isSameDay(parseISO(c), dateForDayIndex));
+              // Remove if it exists
+              newCompletions = newCompletions.filter(c => c !== dateString);
             }
 
             const updatedHabit = { ...habit, days: newDays, completions: newCompletions };
