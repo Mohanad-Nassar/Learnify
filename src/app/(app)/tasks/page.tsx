@@ -131,13 +131,32 @@ const TaskItem = ({ task, onToggleComplete, onEdit, onDelete }: { task: Task; on
 }
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [filter, setFilter] = useState('All');
   const [subjectFilter, setSubjectFilter] = useState('All');
   const [showConfetti, setShowConfetti] = useState(false);
   const { subjects } = useContext(SubjectContext);
+
+   useEffect(() => {
+    try {
+      const storedTasks = localStorage.getItem('learnify-tasks');
+      if (storedTasks) {
+        setTasks(JSON.parse(storedTasks));
+      } else {
+        setTasks(initialTasks);
+      }
+    } catch (error) {
+      console.error("Failed to parse tasks from localStorage", error);
+      setTasks(initialTasks);
+    }
+  }, []);
+
+  const updateTasksAndStorage = (newTasks: Task[]) => {
+    setTasks(newTasks);
+    localStorage.setItem('learnify-tasks', JSON.stringify(newTasks));
+  }
 
 
   useEffect(() => {
@@ -147,14 +166,13 @@ export default function TasksPage() {
 
     if (tasksToUpdate.length > 0) {
       const timer = setTimeout(() => {
-        setTasks((currentTasks) =>
-          currentTasks.map((task) => {
+        const newTasks = tasks.map((task) => {
             if (tasksToUpdate.some((t) => t.id === task.id)) {
               return { ...task, status: "Done" };
             }
             return task;
-          })
-        );
+          });
+        updateTasksAndStorage(newTasks);
       }, 1000);
 
       return () => clearTimeout(timer);
@@ -204,29 +222,29 @@ export default function TasksPage() {
       return;
     }
 
+    let newTasks;
     if (editingTask) {
-      setTasks(
-        tasks.map((task) =>
+      newTasks = tasks.map((task) =>
           task.id === editingTask.id ? { ...task, title: taskDetails.title, subject: taskDetails.subject, dueDate: new Date(taskDetails.dueDate).toISOString() } : task
-        )
-      );
+        );
     } else {
       const newTask: Task = {
-        id: Math.max(...tasks.map((t) => t.id), 0) + 1,
+        id: tasks.length > 0 ? Math.max(...tasks.map((t) => t.id)) + 1 : 1,
         title: taskDetails.title,
         subject: taskDetails.subject,
         dueDate: new Date(taskDetails.dueDate).toISOString(),
         status: "Not Started",
         isCompleted: false,
       };
-      setTasks([...tasks, newTask]);
+      newTasks = [...tasks, newTask];
     }
-
+    updateTasksAndStorage(newTasks);
     handleCloseDialog();
   };
   
   const handleDeleteTask = (taskId: number) => {
-    setTasks(tasks.filter(task => task.id !== taskId));
+    const newTasks = tasks.filter(task => task.id !== taskId);
+    updateTasksAndStorage(newTasks);
   };
   
   const handleToggleComplete = (taskId: number, isCompleted: boolean) => {
@@ -234,11 +252,10 @@ export default function TasksPage() {
       setShowConfetti(true);
     }
     
-    setTasks(currentTasks =>
-      currentTasks.map(task =>
+    const newTasks = tasks.map(task =>
         task.id === taskId ? { ...task, isCompleted, status: isCompleted ? 'In Progress' : 'Not Started' } : task
-      )
-    );
+      );
+    updateTasksAndStorage(newTasks);
   }
 
   const handleInputChange = (field: keyof typeof taskDetails, value: string) => {
@@ -250,7 +267,7 @@ export default function TasksPage() {
     const filterCondition = filter === 'All' || 
                             (filter === 'Today' && isToday(date)) ||
                             (filter === 'This Week' && isThisWeek(date, { weekStartsOn: 1 }));
-    const subjectCondition = subjectFilter === 'All' || task.subject === subjectFilter;
+    const subjectCondition = subjectFilter === 'All' || task.subject === subjectFilter || (subjectFilter === 'General' && (!task.subject || subjects.every(s => s.name !== task.subject)));
     return filterCondition && subjectCondition;
   });
 
