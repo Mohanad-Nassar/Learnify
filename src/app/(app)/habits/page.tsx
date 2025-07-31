@@ -1,18 +1,21 @@
 
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
-import { Target, PlusCircle, Repeat, BookOpen, Dumbbell, Edit, Trash2, Flame } from "lucide-react"
+import { Target, PlusCircle, Repeat, BookOpen, Dumbbell, Edit, Trash2, Flame, BarChartHorizontal } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO, startOfToday, differenceInCalendarDays, addDays } from 'date-fns';
+import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO, startOfToday, differenceInCalendarDays, addDays, getYear, getMonth, getDate, endOfYear, startOfYear, isSameMonth } from 'date-fns';
+import { Calendar } from "@/components/ui/calendar"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 
 
 type Habit = {
@@ -21,7 +24,7 @@ type Habit = {
   iconName: string; 
   goal: number; // Target completions per week
   days: boolean[]; // Represents Mon-Sun for the CURRENT week
-  completions: string[]; // Stores ISO date strings of all completions
+  completions: string[]; // Stores ISO date strings of all completions 'yyyy-MM-dd'
   currentStreak: number;
 };
 
@@ -90,7 +93,7 @@ const calculateProgress = (days: boolean[], goal: number) => {
     return Math.min(Math.round((completedDays / goal) * 100), 100);
 }
 
-const calculateStreak = (habit: Habit): number => {
+const calculateStreak = (habit: Habit, isLongest: boolean = false): number => {
     const { completions, goal } = habit;
     const sortedDates = [...new Set(completions)].map(c => parseISO(c)).sort((a, b) => b.getTime() - a.getTime());
 
@@ -99,74 +102,222 @@ const calculateStreak = (habit: Habit): number => {
     const today = startOfToday();
 
     if (goal === 7) { // Daily streak logic
-        let mostRecentCompletion = sortedDates[0];
-        if (differenceInCalendarDays(today, mostRecentCompletion) > 1) {
-            return 0; // Streak is broken if the last completion was more than a day ago.
+        let longestStreak = 0;
+        let currentStreak = 0;
+
+        if (sortedDates.length > 0) {
+            const diffFromToday = differenceInCalendarDays(today, sortedDates[0]);
+             if (diffFromToday <= 1) {
+                currentStreak = 1;
+                longestStreak = 1;
+            }
         }
-        
-        let streak = 1;
+       
         for (let i = 1; i < sortedDates.length; i++) {
             const date1 = sortedDates[i - 1];
             const date2 = sortedDates[i];
-            if (differenceInCalendarDays(date1, date2) === 1) {
-                streak++;
+            const diff = differenceInCalendarDays(date1, date2);
+
+            if (diff === 1) {
+                currentStreak++;
             } else {
-                break; // Gap found, streak ends.
+                currentStreak = 1; // Reset for a new potential streak
+            }
+            if (currentStreak > longestStreak) {
+                longestStreak = currentStreak;
             }
         }
-        return streak;
+        
+        const mostRecentCompletion = sortedDates[0];
+        const diffToday = differenceInCalendarDays(today, mostRecentCompletion);
+        if (diffToday > 1) {
+             currentStreak = 0;
+        }
+
+        return isLongest ? longestStreak : currentStreak;
 
     } else { // Weekly streak logic
         const completionsByWeek: Record<string, number> = sortedDates.reduce((acc, date) => {
-            const weekStart = format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-            acc[weekStart] = (acc[weekStart] || 0) + 1;
+            const weekStartKey = format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+            acc[weekStartKey] = (acc[weekStartKey] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
 
-        const sortedWeekKeys = Object.keys(completionsByWeek).sort().reverse();
+        const sortedWeekKeys = Object.keys(completionsByWeek).sort((a,b) => parseISO(b).getTime() - parseISO(a).getTime());
         
-        let currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-        let currentWeekKey = format(currentWeekStart, 'yyyy-MM-dd');
+        let longestStreak = 0;
+        let currentStreak = 0;
+        
+        if (sortedWeekKeys.length > 0) {
+            const mostRecentWeekStart = parseISO(sortedWeekKeys[0]);
+            const todayWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+            const lastWeekStart = startOfWeek(subDays(today, 7), { weekStartsOn: 1 });
 
-        // If the current week isn't in our completion data, check from last week
-        if (!sortedWeekKeys.includes(currentWeekKey) || completionsByWeek[currentWeekKey] < goal) {
-             const lastWeekStart = subDays(currentWeekStart, 7);
-             currentWeekKey = format(startOfWeek(lastWeekStart, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-        }
-
-        let streak = 0;
-        let weekIndex = sortedWeekKeys.indexOf(currentWeekKey);
-        if (weekIndex === -1) return 0;
-
-        while(weekIndex < sortedWeekKeys.length) {
-            const weekKey = sortedWeekKeys[weekIndex];
-            const prevWeekKey = sortedWeekKeys[weekIndex + 1];
-
-            if (completionsByWeek[weekKey] >= goal) {
-                streak++;
-                
-                // Check if the next week in our data is consecutive
-                if (prevWeekKey) {
-                    const d1 = parseISO(weekKey);
-                    const d2 = parseISO(prevWeekKey);
-                    if (differenceInCalendarDays(d1, d2) > 7) {
-                        break; // Weeks are not consecutive
-                    }
-                }
-                 weekIndex++;
+            const isMostRecentThisWeek = isSameDay(mostRecentWeekStart, todayWeekStart);
+            const isMostRecentLastWeek = isSameDay(mostRecentWeekStart, lastWeekStart);
+           
+            if ((isMostRecentThisWeek && completionsByWeek[sortedWeekKeys[0]] >= goal) || isMostRecentLastWeek) {
+                 // Streak is potentially active
             } else {
-                break; // Goal not met for the week
+                currentStreak = 0; // Streak is broken
+            }
+
+            let consecutiveWeeks = 0;
+            for (let i = 0; i < sortedWeekKeys.length; i++) {
+                const weekKey = sortedWeekKeys[i];
+                if (completionsByWeek[weekKey] >= goal) {
+                    if (i > 0) {
+                        const prevWeekKey = sortedWeekKeys[i-1];
+                        const diff = differenceInCalendarDays(parseISO(prevWeekKey), parseISO(weekKey));
+                        if(diff === 7) {
+                           consecutiveWeeks++;
+                        } else {
+                           consecutiveWeeks = 1;
+                        }
+                    } else {
+                        consecutiveWeeks = 1;
+                    }
+                } else {
+                    consecutiveWeeks = 0;
+                }
+                
+                if (i === 0) {
+                    currentStreak = consecutiveWeeks;
+                }
+
+                if (consecutiveWeeks > longestStreak) {
+                    longestStreak = consecutiveWeeks;
+                }
             }
         }
-
-        return streak;
+        
+        return isLongest ? longestStreak : currentStreak;
     }
 };
 
+const HabitReportDialog = ({ habit, isOpen, onClose }: { habit: Habit, isOpen: boolean, onClose: () => void }) => {
+    if (!isOpen) return null;
+
+    const today = new Date();
+    const yearStart = startOfYear(today);
+    const completionsInYear = habit.completions.filter(c => getYear(parseISO(c)) === getYear(today));
+    const completionDates = useMemo(() => new Set(completionsInYear), [completionsInYear]);
+    const longestStreak = calculateStreak(habit, true);
+
+    const completionRate = Math.round((completionsInYear.length / 365) * 100);
+
+    const getMonthMatrix = (year: number, month: number) => {
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const matrix = [];
+        let week: (Date | null)[] = [];
+
+        // Fill initial empty days
+        const startDayOfWeek = getDay(firstDay) === 0 ? 6 : getDay(firstDay) - 1; // Mon = 0
+        for (let i = 0; i < startDayOfWeek; i++) {
+            week.push(null);
+        }
+
+        for (let day = 1; day <= getDate(lastDay); day++) {
+            const date = new Date(year, month, day);
+            week.push(date);
+            if (week.length === 7) {
+                matrix.push(week);
+                week = [];
+            }
+        }
+        
+        if (week.length > 0) {
+            while (week.length < 7) {
+                week.push(null);
+            }
+            matrix.push(week);
+        }
+
+        return matrix;
+    }
+    
+    const months = Array.from({ length: 12 }, (_, i) => i);
+    const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>{habit.title}: Progress Report</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6 py-4">
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                        <Card>
+                            <CardHeader className="p-4">
+                                <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
+                                <p className="text-2xl font-bold">{habit.currentStreak} {habit.goal === 7 ? 'days' : 'weeks'}</p>
+                            </CardHeader>
+                        </Card>
+                         <Card>
+                            <CardHeader className="p-4">
+                                <CardTitle className="text-sm font-medium">Longest Streak</CardTitle>
+                                <p className="text-2xl font-bold">{longestStreak} {habit.goal === 7 ? 'days' : 'weeks'}</p>
+                            </CardHeader>
+                        </Card>
+                         <Card>
+                            <CardHeader className="p-4">
+                                <CardTitle className="text-sm font-medium">Yearly Completions</CardTitle>
+                                <p className="text-2xl font-bold">{completionsInYear.length}</p>
+                            </CardHeader>
+                        </Card>
+                         <Card>
+                            <CardHeader className="p-4">
+                                <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+                                <p className="text-2xl font-bold">{completionRate}%</p>
+                            </CardHeader>
+                        </Card>
+                    </div>
+
+                    <div>
+                        <h3 className="text-lg font-semibold mb-2 text-center">Activity Heatmap ({getYear(today)})</h3>
+                        <TooltipProvider>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                           {months.map(month => (
+                                <div key={month}>
+                                    <h4 className="font-semibold text-center mb-2">{monthLabels[month]}</h4>
+                                    <div className="grid grid-cols-7 gap-1">
+                                        {["M", "T", "W", "T", "F", "S", "S"].map(day => <div key={day} className="text-xs text-center text-muted-foreground">{day}</div>)}
+                                        {getMonthMatrix(getYear(today), month).flat().map((day, index) => {
+                                             if (!day) return <div key={`empty-${index}`} className="w-4 h-4" />;
+                                             const isCompleted = completionDates.has(format(day, 'yyyy-MM-dd'));
+                                             return (
+                                                 <Tooltip key={day.toString()}>
+                                                     <TooltipTrigger asChild>
+                                                         <div className={cn("w-4 h-4 rounded-sm", isCompleted ? 'bg-primary' : 'bg-muted/50')} />
+                                                     </TooltipTrigger>
+                                                     <TooltipContent>
+                                                         <p>{format(day, 'PPP')} - {isCompleted ? "Completed" : "Not Completed"}</p>
+                                                     </TooltipContent>
+                                                 </Tooltip>
+                                             );
+                                        })}
+                                    </div>
+                                </div>
+                           ))}
+                        </div>
+                        </TooltipProvider>
+                    </div>
+                </div>
+                 <DialogFooter>
+                    <Button variant="outline" onClick={onClose}>Close</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
 
 export default function HabitsPage() {
     const [habits, setHabits] = useState<Habit[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isReportOpen, setIsReportOpen] = useState(false);
+    const [selectedHabitForReport, setSelectedHabitForReport] = useState<Habit | null>(null);
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
     const [habitDetails, setHabitDetails] = useState<{ title: string; goal: number }>({ title: "", goal: 7 });
 
@@ -221,7 +372,6 @@ export default function HabitsPage() {
         }
     }, [habits]);
 
-
     const handleOpenDialog = (habit: Habit | null) => {
         if (habit) {
             setEditingHabit(habit);
@@ -232,6 +382,16 @@ export default function HabitsPage() {
         }
         setIsDialogOpen(true);
     };
+
+    const handleOpenReport = (habit: Habit) => {
+        setSelectedHabitForReport(habit);
+        setIsReportOpen(true);
+    }
+    
+    const handleCloseReport = () => {
+        setIsReportOpen(false);
+        setSelectedHabitForReport(null);
+    }
 
     const handleCloseDialog = () => {
         setIsDialogOpen(false);
@@ -246,7 +406,9 @@ export default function HabitsPage() {
         }
 
         if (editingHabit) {
-            setHabits(habits.map(h => h.id === editingHabit.id ? { ...h, title: habitDetails.title, goal: habitDetails.goal } : h));
+            const updatedHabits = habits.map(h => h.id === editingHabit.id ? { ...h, title: habitDetails.title, goal: habitDetails.goal } : h);
+            const finalHabits = updatedHabits.map(h => ({...h, currentStreak: calculateStreak(h)}));
+            setHabits(finalHabits);
         } else {
             const newHabit: Habit = {
                 id: habits.length > 0 ? Math.max(...habits.map(h => h.id)) + 1 : 1,
@@ -278,14 +440,17 @@ export default function HabitsPage() {
             const newDays = [...habit.days];
             newDays[dayIndex] = !newDays[dayIndex];
             
-            let newCompletions = [...habit.completions];
-            
-            if (newDays[dayIndex]) {
-              if (!newCompletions.includes(dateString)) {
-                newCompletions.push(dateString);
-              }
-            } else {
-              newCompletions = newCompletions.filter(c => c !== dateString);
+            let newCompletions;
+            const completionExists = habit.completions.includes(dateString);
+
+            if (newDays[dayIndex]) { // If checkbox is checked
+                if (!completionExists) {
+                    newCompletions = [...habit.completions, dateString];
+                } else {
+                    newCompletions = habit.completions;
+                }
+            } else { // If checkbox is unchecked
+                newCompletions = habit.completions.filter(c => c !== dateString);
             }
 
             const updatedHabit = { ...habit, days: newDays, completions: newCompletions };
@@ -330,6 +495,9 @@ export default function HabitsPage() {
                     <CardDescription>{goalLabel}</CardDescription>
                 </div>
                  <div className="flex items-center">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenReport(habit)}>
+                        <BarChartHorizontal className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDialog(habit)}>
                         <Edit className="h-4 w-4" />
                     </Button>
@@ -425,8 +593,14 @@ export default function HabitsPage() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+
+        {selectedHabitForReport && (
+            <HabitReportDialog
+                habit={selectedHabitForReport}
+                isOpen={isReportOpen}
+                onClose={handleCloseReport}
+            />
+        )}
     </div>
   )
 }
-
-    
