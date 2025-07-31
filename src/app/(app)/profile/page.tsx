@@ -42,9 +42,9 @@ export default function ProfilePage() {
 
       <div className="flex flex-col items-center">
         <Avatar className="h-24 w-24 mx-auto mb-2">
-          <Image src="/profile.png" alt="Alex Doe" width={96} height={96} data-ai-hint="palestinian girl" />
+          <Image src="/profile.png" alt="Shaymaaaaaa" width={96} height={96} data-ai-hint="palestinian girl" />
         </Avatar>
-        <h2 className="text-xl font-semibold">Alex Doe</h2>
+        <h2 className="text-xl font-semibold">Shaymaaaaaa</h2>
         <p className="text-sm text-muted-foreground">Student</p>
       </div>
 
@@ -56,11 +56,11 @@ export default function ProfilePage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" defaultValue="Alex Doe" />
+              <Input id="name" defaultValue="Shaymaaaaaa" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
-              <Input id="email" type="email" defaultValue="alex.doe@example.com" />
+              <Input id="email" type="email" defaultValue="Shaymaaaaaa@example.com" />
             </div>
              <div className="flex justify-end">
                 <Button className="bg-accent text-accent-foreground hover:bg-accent/90">Save Changes</Button>
@@ -146,5 +146,3 @@ export default function ProfilePage() {
     </div>
   )
 }
-
-    
