@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays } from 'date-fns';
+import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO } from 'date-fns';
 
 
 type Habit = {
@@ -92,34 +92,47 @@ const calculateProgress = (days: boolean[], goal: number) => {
 
 const calculateStreak = (habit: Habit): number => {
     const { completions, goal } = habit;
-    const sortedCompletions = completions.map(c => new Date(c)).sort((a, b) => b.getTime() - a.getTime());
+    const sortedCompletions = completions.map(c => parseISO(c)).sort((a, b) => b.getTime() - a.getTime());
 
     if (sortedCompletions.length === 0) return 0;
 
-    if (goal === 7) { // Daily streak
-        let streak = 0;
-        let today = new Date();
-        if (!isSameDay(today, sortedCompletions[0])) { // if not completed today
-            today = subDays(today, 1); // check from yesterday
-        }
+    let streak = 0;
+
+    if (goal === 7) { // Daily streak logic
+        let currentDate = new Date();
         
-        for (let i = 0; i < sortedCompletions.length; i++) {
-            const completionDate = sortedCompletions[i];
-            if (isSameDay(today, completionDate)) {
+        // If today is not in completions, start checking from yesterday
+        if (!sortedCompletions.some(d => isSameDay(d, currentDate))) {
+            currentDate = subDays(currentDate, 1);
+        }
+
+        // Iterate backwards from today (or yesterday)
+        for (let i = 0; ; i++) {
+            const dateToCheck = currentDate;
+            const completionExists = sortedCompletions.some(d => isSameDay(d, dateToCheck));
+            
+            if (completionExists) {
                 streak++;
-                today = subDays(today, 1);
+                currentDate = subDays(currentDate, 1); // Move to the previous day
             } else {
-                break;
+                break; // Streak is broken
             }
         }
-        return streak;
-    } else { // Weekly streak
-        let streak = 0;
-        let currentWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
+    } else { // Weekly streak logic
+        let currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+        
+        // Check if current week's goal is met to include it in the streak
+        const completionsInCurrentWeek = sortedCompletions.filter(d => 
+            isWithinInterval(d, { start: currentWeekStart, end: endOfWeek(currentWeekStart, { weekStartsOn: 1 }) })
+        ).length;
+
+        if (completionsInCurrentWeek < goal) {
+             currentWeekStart = startOfWeek(subDays(currentWeekStart, 7), { weekStartsOn: 1 });
+        }
         
         while (true) {
-            const weekStart = currentWeek;
-            const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
+            const weekStart = currentWeekStart;
+            const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
 
             const completionsInWeek = sortedCompletions.filter(d => 
                 isWithinInterval(d, { start: weekStart, end: weekEnd })
@@ -127,13 +140,14 @@ const calculateStreak = (habit: Habit): number => {
 
             if (completionsInWeek >= goal) {
                 streak++;
-                currentWeek = startOfWeek(subDays(currentWeek, 1), { weekStartsOn: 1 });
+                currentWeekStart = startOfWeek(subDays(weekStart, 7), { weekStartsOn: 1 }); // Move to previous week
             } else {
-                break;
+                break; // Streak is broken
             }
         }
-        return streak;
     }
+    
+    return streak;
 };
 
 
@@ -148,12 +162,31 @@ export default function HabitsPage() {
             const storedHabits = localStorage.getItem('learnify-habits');
             if (storedHabits) {
                 const parsedHabits = JSON.parse(storedHabits);
-                // Simple migration for users who used the app before streaks
-                const migratedHabits = parsedHabits.map((h: any) => ({
-                    ...h,
-                    completions: h.completions || [],
-                    currentStreak: h.currentStreak || 0,
-                }));
+                const today = new Date();
+                const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+                const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+
+                // Simple migration for users who used the app before streaks and date-based completions
+                const migratedHabits = parsedHabits.map((h: any) => {
+                     // Reset weekly checkboxes if the week has changed
+                    const lastCompletionDate = h.completions && h.completions.length > 0
+                        ? new Date(Math.max.apply(null, h.completions.map((c: string) => new Date(c).getTime())))
+                        : new Date(0);
+
+                    const days = !isWithinInterval(lastCompletionDate, { start: weekStart, end: weekEnd })
+                        ? Array(7).fill(false)
+                        : h.days || Array(7).fill(false);
+
+                    const updatedHabit = {
+                        ...h,
+                        days,
+                        completions: h.completions || [],
+                    };
+                    return {
+                        ...updatedHabit,
+                        currentStreak: calculateStreak(updatedHabit),
+                    };
+                });
                 setHabits(migratedHabits);
             } else {
                 setHabits(initialHabits);
@@ -229,21 +262,21 @@ export default function HabitsPage() {
             newDays[dayIndex] = !newDays[dayIndex];
             
             let newCompletions = [...habit.completions];
-            const dateISO = dateForDayIndex.toISOString().split('T')[0];
+            const dateISO = dateForDayIndex.toISOString();
     
             if (newDays[dayIndex]) {
               // Add to completions if it's not already there
-              if (!newCompletions.some(c => c.startsWith(dateISO))) {
-                newCompletions.push(dateForDayIndex.toISOString());
+              if (!newCompletions.some(c => isSameDay(parseISO(c), dateForDayIndex))) {
+                newCompletions.push(dateISO);
               }
             } else {
               // Remove from completions
-              newCompletions = newCompletions.filter(c => !c.startsWith(dateISO));
+              newCompletions = newCompletions.filter(c => !isSameDay(parseISO(c), dateForDayIndex));
             }
 
             const updatedHabit = { ...habit, days: newDays, completions: newCompletions };
             const newStreak = calculateStreak(updatedHabit);
-
+            
             return { ...updatedHabit, currentStreak: newStreak };
           }
           return habit;
@@ -381,3 +414,4 @@ export default function HabitsPage() {
     </div>
   )
 }
+
