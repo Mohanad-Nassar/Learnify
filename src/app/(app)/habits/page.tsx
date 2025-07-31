@@ -311,7 +311,7 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
              toast({
                 variant: "destructive",
                 title: "Cannot change future dates",
-                description: "You cannot mark a habit for a day in the future. Please check your timezone in your profile if you believe this is a mistake.",
+                description: "Sorry, you can't change future events. Please check your timezone from your profile if you think it was a mistake.",
             });
             return;
         }
@@ -571,7 +571,7 @@ export default function HabitsPage() {
             toast({
                 variant: "destructive",
                 title: "Cannot change future dates",
-                description: "You cannot mark a habit for a day in the future. Please check your timezone in your profile if you believe this is a mistake.",
+                description: "Sorry, you can't change future events. Please check your timezone from your profile if you think it was a mistake.",
             });
             return;
         }
@@ -748,5 +748,3 @@ export default function HabitsPage() {
     </div>
   )
 }
-
-    
