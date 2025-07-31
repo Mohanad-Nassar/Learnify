@@ -308,9 +308,9 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
                     <div>
                         <h3 className="text-lg font-semibold mb-2 text-center">Activity Heatmap ({getYear(today)})</h3>
                         <TooltipProvider>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div className="flex flex-wrap gap-4 justify-center">
                            {months.map(month => (
-                                <div key={month}>
+                                <div key={month} className="min-w-[150px]">
                                     <h4 className="font-semibold text-center mb-2">{monthLabels[month]}</h4>
                                     <div className="grid grid-cols-7 gap-1">
                                         {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => <div key={`${day}-${index}`} className="text-xs text-center text-muted-foreground">{day}</div>)}
