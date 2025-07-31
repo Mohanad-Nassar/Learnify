@@ -266,12 +266,12 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="max-w-3xl flex flex-col h-[90vh]">
                 <DialogHeader>
                     <DialogTitle>{habit.title}: Progress Report</DialogTitle>
                     <DialogDescription>Click on a day in the heatmap to toggle its completion status.</DialogDescription>
                 </DialogHeader>
-                <div className="space-y-6 py-4">
+                <div className="space-y-4">
                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                         <Card>
                             <CardHeader className="p-4">
@@ -298,39 +298,41 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
                             </CardHeader>
                         </Card>
                     </div>
-                    <ScrollArea className="max-h-[50vh] pr-6">
-                    <div>
-                        <h3 className="text-lg font-semibold mb-2 text-center">Activity Heatmap ({getYear(today)})</h3>
-                        <TooltipProvider>
-                        <div className="flex flex-wrap gap-4 justify-center">
-                           {months.map(month => (
-                                <div key={month} className="min-w-[150px]">
-                                    <h4 className="font-semibold text-center mb-2">{monthLabels[month]}</h4>
-                                    <div className="grid grid-cols-7 gap-1">
-                                        {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => <div key={`${day}-${index}`} className="text-xs text-center text-muted-foreground">{day}</div>)}
-                                        {getMonthMatrix(getYear(today), month).flat().map((day, index) => {
-                                             if (!day) return <div key={`empty-${index}`} className="w-5 h-5" />;
-                                             const isCompleted = completionDates.has(format(day, 'yyyy-MM-dd'));
-                                             return (
-                                                 <Tooltip key={day.toString()}>
-                                                     <TooltipTrigger asChild>
-                                                         <button 
-                                                            className={cn("w-5 h-5 rounded-sm transition-colors", isCompleted ? 'bg-primary hover:bg-primary/80' : 'bg-muted/50 hover:bg-muted')}
-                                                            onClick={() => onToggleCompletion(day)}
-                                                          />
-                                                     </TooltipTrigger>
-                                                     <TooltipContent>
-                                                         <p>{format(day, 'PPP')} - {isCompleted ? "Completed" : "Not Completed"}</p>
-                                                     </TooltipContent>
-                                                 </Tooltip>
-                                             );
-                                        })}
+                </div>
+                <div className="flex-grow min-h-0">
+                    <ScrollArea className="h-full pr-6">
+                        <div>
+                            <h3 className="text-lg font-semibold mb-2 text-center">Activity Heatmap ({getYear(today)})</h3>
+                            <TooltipProvider>
+                            <div className="flex flex-wrap gap-4 justify-center">
+                               {months.map(month => (
+                                    <div key={month} className="min-w-[150px]">
+                                        <h4 className="font-semibold text-center mb-2">{monthLabels[month]}</h4>
+                                        <div className="grid grid-cols-7 gap-1">
+                                            {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => <div key={`${day}-${index}`} className="text-xs text-center text-muted-foreground">{day}</div>)}
+                                            {getMonthMatrix(getYear(today), month).flat().map((day, index) => {
+                                                 if (!day) return <div key={`empty-${index}`} className="w-5 h-5" />;
+                                                 const isCompleted = completionDates.has(format(day, 'yyyy-MM-dd'));
+                                                 return (
+                                                     <Tooltip key={day.toString()}>
+                                                         <TooltipTrigger asChild>
+                                                             <button 
+                                                                className={cn("w-5 h-5 rounded-sm transition-colors", isCompleted ? 'bg-primary hover:bg-primary/80' : 'bg-muted/50 hover:bg-muted')}
+                                                                onClick={() => onToggleCompletion(day)}
+                                                              />
+                                                         </TooltipTrigger>
+                                                         <TooltipContent>
+                                                             <p>{format(day, 'PPP')} - {isCompleted ? "Completed" : "Not Completed"}</p>
+                                                         </TooltipContent>
+                                                     </Tooltip>
+                                                 );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
-                           ))}
+                               ))}
+                            </div>
+                            </TooltipProvider>
                         </div>
-                        </TooltipProvider>
-                    </div>
                     </ScrollArea>
                 </div>
                  <DialogFooter>
