@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useEffect, useContext } from "react";
@@ -312,6 +313,7 @@ export default function TasksPage() {
                     {subjects.map((subject) => (
                       <SelectItem key={subject.id} value={subject.name}>{subject.name}</SelectItem>
                     ))}
+                    <SelectItem value="General">General</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -371,3 +373,5 @@ export default function TasksPage() {
     </div>
   )
 }
+
+    
