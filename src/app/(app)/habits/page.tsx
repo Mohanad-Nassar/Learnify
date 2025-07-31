@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO, startOfToday, differenceInCalendarDays, addDays, getYear, getMonth, getDate, endOfYear, startOfYear, isSameMonth, getDay } from 'date-fns';
-import { Calendar } from "@/components/ui/calendar"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
@@ -95,7 +95,6 @@ const calculateProgress = (days: boolean[], goal: number) => {
 
 const calculateStreak = (habit: Habit): number => {
     const { completions, goal } = habit;
-    // 1. Get all unique completion dates and sort them from most recent to oldest.
     const sortedDates = [...new Set(completions)].map(c => parseISO(c)).sort((a, b) => b.getTime() - a.getTime());
 
     if (sortedDates.length === 0) return 0;
@@ -103,15 +102,13 @@ const calculateStreak = (habit: Habit): number => {
     const today = startOfToday();
 
     if (goal === 7) { // Daily streak logic
-        // 2a. Check if the streak is currently active. It's active if the last completion was today or yesterday.
         const mostRecentCompletion = sortedDates[0];
         const diffFromToday = differenceInCalendarDays(today, mostRecentCompletion);
 
         if (diffFromToday > 1) {
-            return 0; // Streak is broken if the last completion was more than a day ago.
+            return 0; 
         }
 
-        // 3a. Count consecutive days backwards from the most recent completion.
         let streak = 1;
         for (let i = 1; i < sortedDates.length; i++) {
             const date1 = sortedDates[i - 1];
@@ -119,19 +116,16 @@ const calculateStreak = (habit: Habit): number => {
             const diff = differenceInCalendarDays(date1, date2);
 
             if (diff === 1) {
-                streak++; // The days are consecutive, so increment the streak.
+                streak++;
             } else {
-                break; // A gap was found, so the streak ends here.
+                break; 
             }
         }
         return streak;
 
     } else { // Weekly streak logic
-        // 2b. Determine the starting week for the streak calculation.
         let currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
         
-        // If the goal for the *current* week hasn't been met yet, start counting from *last* week.
-        // This prevents the streak from being broken just because the current week isn't over.
         const completionsInCurrentWeek = sortedDates.filter(d => 
             isWithinInterval(d, { start: currentWeekStart, end: endOfWeek(currentWeekStart, { weekStartsOn: 1 }) })
         ).length;
@@ -140,7 +134,6 @@ const calculateStreak = (habit: Habit): number => {
              currentWeekStart = startOfWeek(subDays(today, 7), { weekStartsOn: 1 });
         }
         
-        // 3b. Loop backwards through the weeks and count how many consecutive weeks the goal was met.
         let streak = 0;
         while (true) {
             const weekStart = currentWeekStart;
@@ -151,10 +144,10 @@ const calculateStreak = (habit: Habit): number => {
             ).length;
 
             if (completionsInWeek >= goal) {
-                streak++; // Goal met for this week, increment streak.
-                currentWeekStart = startOfWeek(subDays(weekStart, 7), { weekStartsOn: 1 }); // Move to the previous week.
+                streak++;
+                currentWeekStart = startOfWeek(subDays(weekStart, 7), { weekStartsOn: 1 });
             } else {
-                break; // Goal not met, the streak is broken.
+                break;
             }
         }
         return streak;
@@ -277,7 +270,8 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
                     <DialogTitle>{habit.title}: Progress Report</DialogTitle>
                     <DialogDescription>Click on a day in the heatmap to toggle its completion status.</DialogDescription>
                 </DialogHeader>
-                <div className="space-y-6 py-4">
+                <ScrollArea className="max-h-[70vh]">
+                <div className="space-y-6 py-4 pr-6">
                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                         <Card>
                             <CardHeader className="p-4">
@@ -338,6 +332,7 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
                         </TooltipProvider>
                     </div>
                 </div>
+                </ScrollArea>
                  <DialogFooter>
                     <Button variant="outline" onClick={onClose}>Close</Button>
                 </DialogFooter>
