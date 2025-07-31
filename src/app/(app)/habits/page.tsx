@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
-import { Target, PlusCircle, Repeat, BookOpen, Dumbbell, Edit, Trash2, Flame, BarChartHorizontal } from "lucide-react"
+import { Target, PlusCircle, Repeat, BookOpen, Dumbbell, Edit, Trash2, Flame, BarChartHorizontal, Heart, Brain, Droplets } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription as AlertDialogDescriptionComponent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
@@ -32,7 +32,9 @@ type Habit = {
 
 const goalOptions: { label: string, value: number }[] = [
     { label: "Daily", value: 7 },
-    { label: "Every weekday", value: 5 },
+    { label: "6 times a week", value: 6 },
+    { label: "5 times a week", value: 5 },
+    { label: "4 times a week", value: 4 },
     { label: "3 times a week", value: 3 },
     { label: "Twice a week", value: 2 },
     { label: "Once a week", value: 1 },
@@ -43,6 +45,9 @@ const getIcon = (name: string): React.ElementType => {
         case 'BookOpen': return BookOpen;
         case 'Dumbbell': return Dumbbell;
         case 'Repeat': return Repeat;
+        case 'Heart': return Heart;
+        case 'Brain': return Brain;
+        case 'Droplets': return Droplets;
         case 'Target': return Target;
         default: return Target;
     }
@@ -81,6 +86,33 @@ const initialHabits: Habit[] = [
     title: "Work on side project",
     iconName: "Target",
     goal: 3,
+    days: [false, false, false, false, false, false, false],
+    completions: [],
+    currentStreak: 0,
+  },
+  {
+    id: 5,
+    title: "Meditate for 10 minutes",
+    iconName: "Brain",
+    goal: 6,
+    days: [false, false, false, false, false, false, false],
+    completions: [],
+    currentStreak: 0,
+  },
+  {
+    id: 6,
+    title: "Drink 8 glasses of water",
+    iconName: "Droplets",
+    goal: 7,
+    days: [false, false, false, false, false, false, false],
+    completions: [],
+    currentStreak: 0,
+  },
+  {
+    id: 7,
+    title: "Call a family member",
+    iconName: "Heart",
+    goal: 1,
     days: [false, false, false, false, false, false, false],
     completions: [],
     currentStreak: 0,
@@ -239,7 +271,7 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
     const longestStreak = calculateLongestStreak(habit);
 
     const totalDaysInYear = differenceInCalendarDays(endOfYear(today), startOfYear(today)) + 1;
-    const completionRate = Math.round((completionsInYear.length / totalDaysInYear) * 100);
+    const completionRate = totalDaysInYear > 0 ? Math.round((completionsInYear.length / totalDaysInYear) * 100) : 0;
 
     const getMonthMatrix = (year: number, month: number) => {
         const firstDay = new Date(year, month, 1);
@@ -378,7 +410,7 @@ export default function HabitsPage() {
     const [isReportOpen, setIsReportOpen] = useState(false);
     const [selectedHabitForReport, setSelectedHabitForReport] = useState<Habit | null>(null);
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
-    const [habitDetails, setHabitDetails] = useState<{ title: string; goal: number }>({ title: "", goal: 7 });
+    const [habitDetails, setHabitDetails] = useState<{ title: string; goal: number; iconName: string; }>({ title: "", goal: 7, iconName: "Target" });
     const { timezone } = useContext(SettingsContext);
     const { toast } = useToast();
 
@@ -436,10 +468,10 @@ export default function HabitsPage() {
     const handleOpenDialog = (habit: Habit | null) => {
         if (habit) {
             setEditingHabit(habit);
-            setHabitDetails({ title: habit.title, goal: habit.goal });
+            setHabitDetails({ title: habit.title, goal: habit.goal, iconName: habit.iconName });
         } else {
             setEditingHabit(null);
-            setHabitDetails({ title: "", goal: 7 });
+            setHabitDetails({ title: "", goal: 7, iconName: "Target" });
         }
         setIsDialogOpen(true);
     };
@@ -457,7 +489,7 @@ export default function HabitsPage() {
     const handleCloseDialog = () => {
         setIsDialogOpen(false);
         setEditingHabit(null);
-        setHabitDetails({ title: "", goal: 7 });
+        setHabitDetails({ title: "", goal: 7, iconName: "Target" });
     };
 
     const handleSaveHabit = () => {
@@ -467,7 +499,7 @@ export default function HabitsPage() {
         }
 
         if (editingHabit) {
-            const updatedHabits = habits.map(h => h.id === editingHabit.id ? { ...h, title: habitDetails.title, goal: habitDetails.goal } : h);
+            const updatedHabits = habits.map(h => h.id === editingHabit.id ? { ...h, title: habitDetails.title, goal: habitDetails.goal, iconName: habitDetails.iconName } : h);
             const finalHabits = updatedHabits.map(h => ({...h, currentStreak: calculateStreak(h)}));
             setHabits(finalHabits);
         } else {
@@ -475,7 +507,7 @@ export default function HabitsPage() {
                 id: habits.length > 0 ? Math.max(...habits.map(h => h.id)) + 1 : 1,
                 title: habitDetails.title,
                 goal: habitDetails.goal,
-                iconName: 'Target',
+                iconName: habitDetails.iconName,
                 days: Array(7).fill(false),
                 completions: [],
                 currentStreak: 0,
@@ -547,7 +579,7 @@ export default function HabitsPage() {
       };
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
+    <div className="space-y-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-headline">Habit Tracker</h1>
@@ -662,6 +694,25 @@ export default function HabitsPage() {
                         />
                     </div>
                     <div className="space-y-2">
+                        <Label htmlFor="habit-icon">Icon</Label>
+                        <Select
+                            value={habitDetails.iconName}
+                            onValueChange={(value) => setHabitDetails({ ...habitDetails, iconName: value })}>
+                            <SelectTrigger id="habit-icon">
+                                <SelectValue placeholder="Select an icon" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Target">Target</SelectItem>
+                                <SelectItem value="BookOpen">BookOpen</SelectItem>
+                                <SelectItem value="Dumbbell">Dumbbell</SelectItem>
+                                <SelectItem value="Repeat">Repeat</SelectItem>
+                                <SelectItem value="Heart">Heart</SelectItem>
+                                <SelectItem value="Brain">Brain</SelectItem>
+                                <SelectItem value="Droplets">Droplets</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
                         <Label htmlFor="habit-goal">Goal</Label>
                         <Select
                             value={String(habitDetails.goal)}
@@ -697,3 +748,5 @@ export default function HabitsPage() {
     </div>
   )
 }
+
+    
