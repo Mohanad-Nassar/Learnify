@@ -283,7 +283,7 @@ const HabitReportDialog = ({ habit, isOpen, onClose }: { habit: Habit, isOpen: b
                                 <div key={month}>
                                     <h4 className="font-semibold text-center mb-2">{monthLabels[month]}</h4>
                                     <div className="grid grid-cols-7 gap-1">
-                                        {["M", "T", "W", "T", "F", "S", "S"].map(day => <div key={day} className="text-xs text-center text-muted-foreground">{day}</div>)}
+                                        {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => <div key={`${day}-${index}`} className="text-xs text-center text-muted-foreground">{day}</div>)}
                                         {getMonthMatrix(getYear(today), month).flat().map((day, index) => {
                                              if (!day) return <div key={`empty-${index}`} className="w-4 h-4" />;
                                              const isCompleted = completionDates.has(format(day, 'yyyy-MM-dd'));
@@ -604,4 +604,3 @@ export default function HabitsPage() {
     </div>
   )
 }
-
