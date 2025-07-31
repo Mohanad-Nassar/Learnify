@@ -99,54 +99,66 @@ const calculateStreak = (habit: Habit): number => {
     const today = startOfToday();
 
     if (goal === 7) { // Daily streak logic
-        const mostRecentCompletion = sortedDates[0];
-        const diffFromToday = differenceInCalendarDays(today, mostRecentCompletion);
-
-        if (diffFromToday > 1) {
-            return 0; // Streak broken
+        let mostRecentCompletion = sortedDates[0];
+        if (differenceInCalendarDays(today, mostRecentCompletion) > 1) {
+            return 0; // Streak is broken if the last completion was more than a day ago.
         }
-
+        
         let streak = 1;
         for (let i = 1; i < sortedDates.length; i++) {
             const date1 = sortedDates[i - 1];
             const date2 = sortedDates[i];
-            const diff = differenceInCalendarDays(date1, date2);
-
-            if (diff === 1) {
+            if (differenceInCalendarDays(date1, date2) === 1) {
                 streak++;
             } else {
-                break; // Not consecutive
+                break; // Gap found, streak ends.
             }
         }
         return streak;
 
     } else { // Weekly streak logic
+        const completionsByWeek: Record<string, number> = sortedDates.reduce((acc, date) => {
+            const weekStart = format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+            acc[weekStart] = (acc[weekStart] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const sortedWeekKeys = Object.keys(completionsByWeek).sort().reverse();
+        
         let currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-        
-        const completionsInCurrentWeek = sortedDates.filter(d => 
-            isWithinInterval(d, { start: currentWeekStart, end: endOfWeek(currentWeekStart, { weekStartsOn: 1 }) })
-        ).length;
+        let currentWeekKey = format(currentWeekStart, 'yyyy-MM-dd');
 
-        if (completionsInCurrentWeek < goal) {
-             currentWeekStart = startOfWeek(subDays(today, 7), { weekStartsOn: 1 });
+        // If the current week isn't in our completion data, check from last week
+        if (!sortedWeekKeys.includes(currentWeekKey) || completionsByWeek[currentWeekKey] < goal) {
+             const lastWeekStart = subDays(currentWeekStart, 7);
+             currentWeekKey = format(startOfWeek(lastWeekStart, { weekStartsOn: 1 }), 'yyyy-MM-dd');
         }
-        
+
         let streak = 0;
-        while (true) {
-            const weekStart = currentWeekStart;
-            const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+        let weekIndex = sortedWeekKeys.indexOf(currentWeekKey);
+        if (weekIndex === -1) return 0;
 
-            const completionsInWeek = sortedDates.filter(d => 
-                isWithinInterval(d, { start: weekStart, end: weekEnd })
-            ).length;
+        while(weekIndex < sortedWeekKeys.length) {
+            const weekKey = sortedWeekKeys[weekIndex];
+            const prevWeekKey = sortedWeekKeys[weekIndex + 1];
 
-            if (completionsInWeek >= goal) {
+            if (completionsByWeek[weekKey] >= goal) {
                 streak++;
-                currentWeekStart = startOfWeek(subDays(weekStart, 7), { weekStartsOn: 1 });
+                
+                // Check if the next week in our data is consecutive
+                if (prevWeekKey) {
+                    const d1 = parseISO(weekKey);
+                    const d2 = parseISO(prevWeekKey);
+                    if (differenceInCalendarDays(d1, d2) > 7) {
+                        break; // Weeks are not consecutive
+                    }
+                }
+                 weekIndex++;
             } else {
-                break;
+                break; // Goal not met for the week
             }
         }
+
         return streak;
     }
 };
@@ -416,3 +428,5 @@ export default function HabitsPage() {
     </div>
   )
 }
+
+    
