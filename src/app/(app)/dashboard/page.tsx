@@ -27,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubjectContext } from '@/context/SubjectContext';
-import { format, isToday, parseISO, startOfToday, subDays, isWithinInterval, startOfWeek, endOfWeek, subWeeks, differenceInCalendarDays } from 'date-fns';
+import { format, isToday, parseISO, startOfToday, subDays, isWithinInterval, startOfWeek, endOfWeek, subWeeks, differenceInCalendarDays, addDays } from 'date-fns';
 
 type Task = {
   id: number;
@@ -47,6 +47,41 @@ type Habit = {
   completions: string[];
 };
 
+const initialTasks: Task[] = [
+  {
+    id: 1,
+    title: "Complete Math Assignment",
+    subject: "Calculus",
+    status: "Not Started",
+    dueDate: new Date().toISOString(),
+    isCompleted: false,
+  },
+  {
+    id: 2,
+    title: "Write History Essay",
+    subject: "World History",
+    status: "Not Started",
+    dueDate: addDays(new Date(), 1).toISOString(),
+    isCompleted: false,
+  },
+  {
+    id: 3,
+    title: "Read Chapter 5 of Biology",
+    subject: "Biology",
+    status: "Done",
+    dueDate: addDays(new Date(), 3).toISOString(),
+    isCompleted: true,
+  },
+  {
+    id: 4,
+    title: "Prepare Presentation for Chemistry",
+    subject: "Physics",
+    status: "In Progress",
+    dueDate: addDays(new Date(), 5).toISOString(),
+    isCompleted: false,
+  },
+];
+
 const calculateHabitProgress = (days: boolean[], goal: number) => {
     const completedDays = days.filter(Boolean).length;
     if (goal <= 0) return 0;
@@ -55,55 +90,17 @@ const calculateHabitProgress = (days: boolean[], goal: number) => {
 
 const calculateStreak = (habit: Habit): number => {
     const { completions, goal } = habit;
-    const completionDates = new Set(completions);
+    const completionDates = new Set(completions.map(c => format(parseISO(c), 'yyyy-MM-dd')));
     const sortedDates = [...new Set(completions)].map(c => parseISO(c)).sort((a, b) => b.getTime() - a.getTime());
 
     if (sortedDates.length === 0) return 0;
     const today = startOfToday();
 
     if (goal >= 7) { // Daily streak logic
-        let currentStreak = 0;
-        let dayToCheck = today;
-
-        if (completionDates.has(format(dayToCheck, 'yyyy-MM-dd'))) {
-            currentStreak++;
-            dayToCheck = subDays(dayToCheck, 1);
-        } else {
-            // if today is not complete, the streak might have ended yesterday
-            dayToCheck = subDays(today, 1);
-        }
-        
-        while (completionDates.has(format(dayToCheck, 'yyyy-MM-dd'))) {
-            currentStreak++;
-            const prevDay = subDays(dayToCheck, 1);
-            if (differenceInCalendarDays(dayToCheck, prevDay) > 1) {
-                break;
-            }
-            dayToCheck = prevDay;
-        }
-
-        // if today is not complete, the streak is 0
-        if (!completionDates.has(format(today, 'yyyy-MM-dd'))) {
-             if (!completionDates.has(format(subDays(today,1), 'yyyy-MM-dd'))) return 0;
-        }
-
-        let finalStreak = 0;
-        let yesterday = subDays(today, 1);
-        if(completionDates.has(format(today, 'yyyy-MM-dd'))) finalStreak++;
-        else if (completionDates.has(format(yesterday, 'yyyy-MM-dd'))) finalStreak = 1;
-        else return 0;
-        
-        dayToCheck = subDays(today, 1);
-        if(!completionDates.has(format(today, 'yyyy-MM-dd'))) dayToCheck = subDays(today, 1);
-
-
-        let consecutive = true;
-        let idx = 0;
         const compDates = Array.from(completionDates).map(d => parseISO(d)).sort((a,b) => b.getTime() - a.getTime());
 
         if (compDates.length === 0) return 0;
 
-        // Check if today or yesterday is a completion date
         const mostRecentCompletion = compDates[0];
         if (!isToday(mostRecentCompletion) && differenceInCalendarDays(today, mostRecentCompletion) > 1) {
             return 0; // Streak is broken
@@ -111,7 +108,7 @@ const calculateStreak = (habit: Habit): number => {
 
         let streak = 0;
         let expectedDate = today;
-        // If today is not completed, start checking from yesterday.
+        
         if (!completionDates.has(format(today, 'yyyy-MM-dd'))) {
             expectedDate = subDays(today, 1);
         }
@@ -120,8 +117,7 @@ const calculateStreak = (habit: Habit): number => {
              if (format(date, 'yyyy-MM-dd') === format(expectedDate, 'yyyy-MM-dd')) {
                 streak++;
                 expectedDate = subDays(expectedDate, 1);
-            } else if (format(date, 'yyyy-MM-dd') === format(subDays(expectedDate,1), 'yyyy-MM-dd')) {
-                 // this means a day was skipped
+            } else if (format(date, 'yyyy-MM-dd') < format(expectedDate, 'yyyy-MM-dd') && differenceInCalendarDays(expectedDate, date) > 1) {
                  break;
             }
         }
@@ -131,11 +127,10 @@ const calculateStreak = (habit: Habit): number => {
         const weekOptions = { weekStartsOn: 1 as const };
         let currentWeekStart = startOfWeek(today, weekOptions);
         
-        const completionsInCurrentWeek = sortedDates.filter(d => 
+        let completionsInCurrentWeek = sortedDates.filter(d => 
             isWithinInterval(d, { start: currentWeekStart, end: endOfWeek(currentWeekStart, weekOptions) })
         ).length;
 
-        // If current week's goal isn't met, the streak calculation should start from the previous week.
         if (completionsInCurrentWeek < goal) {
              currentWeekStart = subWeeks(currentWeekStart, 1);
         }
@@ -153,7 +148,7 @@ const calculateStreak = (habit: Habit): number => {
                 weeklyStreak++;
                 currentWeekStart = subWeeks(weekStart, 1);
             } else {
-                break; // End of streak
+                break;
             }
         }
         return weeklyStreak;
@@ -162,7 +157,7 @@ const calculateStreak = (habit: Habit): number => {
 
 
 export default function DashboardPage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const { subjects } = useContext(SubjectContext);
@@ -178,6 +173,8 @@ export default function DashboardPage() {
       const storedTasks = localStorage.getItem('learnify-tasks');
       if (storedTasks) {
         setTasks(JSON.parse(storedTasks));
+      } else {
+        setTasks(initialTasks);
       }
       const storedHabits = localStorage.getItem('learnify-habits');
       if (storedHabits) {
@@ -254,17 +251,18 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
-            <Flame className="h-5 w-5 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{maxStreak} days</div>
-            <p className="text-xs text-muted-foreground">Your longest active streak.</p>
-          </CardContent>
-        </Card>
-
+        <Link href="/habits">
+          <Card className="shadow-md h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
+              <Flame className="h-5 w-5 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold">{maxStreak} days</div>
+              <p className="text-xs text-muted-foreground">Your longest active streak.</p>
+            </CardContent>
+          </Card>
+        </Link>
         <Card className="shadow-md">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Focus Session</CardTitle>
@@ -278,16 +276,18 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Today's Tasks</CardTitle>
-            <ListTodo className="h-5 w-5 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{completedTodayCount}/{todaysTasks.length}</div>
-            <p className="text-xs text-muted-foreground">Completed tasks</p>
-          </CardContent>
-        </Card>
+        <Link href="/tasks">
+          <Card className="shadow-md h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Today's Tasks</CardTitle>
+              <ListTodo className="h-5 w-5 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold">{completedTodayCount}/{todaysTasks.length}</div>
+              <p className="text-xs text-muted-foreground">Completed tasks</p>
+            </CardContent>
+          </Card>
+        </Link>
         
         <Card className="shadow-md">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -346,31 +346,33 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              <span>Habit Progress</span>
-            </CardTitle>
-            <CardDescription>Your daily habits at a glance.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {habits.length > 0 ? habits.map((habit) => {
-              const progress = calculateHabitProgress(habit.days, habit.goal);
-              return (
-                <div key={habit.id}>
-                    <div className="flex justify-between items-center mb-1">
-                    <p className="text-sm font-medium">{habit.title}</p>
-                    <p className="text-sm text-muted-foreground">{progress}%</p>
-                    </div>
-                    <Progress value={progress} className="h-2" />
-                </div>
-              )
-            }) : (
-                 <p className="text-center text-sm text-muted-foreground py-4">No habits tracked yet.</p>
-            )}
-          </CardContent>
-        </Card>
+        <Link href="/habits" className="block">
+          <Card className="shadow-md h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                <span>Habit Progress</span>
+              </CardTitle>
+              <CardDescription>Your daily habits at a glance.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {habits.length > 0 ? habits.map((habit) => {
+                const progress = calculateHabitProgress(habit.days, habit.goal);
+                return (
+                  <div key={habit.id}>
+                      <div className="flex justify-between items-center mb-1">
+                      <p className="text-sm font-medium">{habit.title}</p>
+                      <p className="text-sm text-muted-foreground">{progress}%</p>
+                      </div>
+                      <Progress value={progress} className="h-2" />
+                  </div>
+                )
+              }) : (
+                  <p className="text-center text-sm text-muted-foreground py-4">No habits tracked yet.</p>
+              )}
+            </CardContent>
+          </Card>
+        </Link>
       </div>
       
        <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
@@ -413,3 +415,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
