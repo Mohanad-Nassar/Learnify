@@ -1,8 +1,7 @@
 
-
 'use client'
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useContext } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -13,10 +12,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO, startOfToday, differenceInCalendarDays, addDays, getYear, getMonth, getDate, endOfYear, startOfYear, isSameMonth, getDay, subWeeks, isToday } from 'date-fns';
+import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO, startOfToday, differenceInCalendarDays, addDays, getYear, getMonth, getDate, endOfYear, startOfYear, isSameMonth, getDay, subWeeks, isToday, isFuture } from 'date-fns';
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { SettingsContext } from "@/context/SettingsContext"
+import { useToast } from "@/hooks/use-toast"
 
 
 type Habit = {
@@ -107,7 +108,6 @@ const calculateStreak = (habit: Habit): number => {
 
         if (compDates.length === 0) return 0;
 
-        // Check if today or yesterday is a completion date
         const mostRecentCompletion = compDates[0];
         if (!isToday(mostRecentCompletion) && differenceInCalendarDays(today, mostRecentCompletion) > 1) {
             return 0; // Streak is broken
@@ -115,7 +115,7 @@ const calculateStreak = (habit: Habit): number => {
 
         let streak = 0;
         let expectedDate = today;
-        // If today is not completed, start checking from yesterday.
+        
         if (!completionDates.has(format(today, 'yyyy-MM-dd'))) {
             expectedDate = subDays(today, 1);
         }
@@ -125,7 +125,6 @@ const calculateStreak = (habit: Habit): number => {
                 streak++;
                 expectedDate = subDays(expectedDate, 1);
             } else if (format(date, 'yyyy-MM-dd') < format(expectedDate, 'yyyy-MM-dd') && differenceInCalendarDays(expectedDate, date) > 1) {
-                 // this means a day was skipped
                  break;
             }
         }
@@ -139,7 +138,6 @@ const calculateStreak = (habit: Habit): number => {
             isWithinInterval(d, { start: currentWeekStart, end: endOfWeek(currentWeekStart, weekOptions) })
         ).length;
 
-        // If current week's goal isn't met, the streak calculation should start from the previous week.
         if (completionsInCurrentWeek < goal) {
              currentWeekStart = subWeeks(currentWeekStart, 1);
         }
@@ -157,7 +155,7 @@ const calculateStreak = (habit: Habit): number => {
                 weeklyStreak++;
                 currentWeekStart = subWeeks(weekStart, 1);
             } else {
-                break; // End of streak
+                break;
             }
         }
         return weeklyStreak;
@@ -213,7 +211,7 @@ const calculateLongestStreak = (habit: Habit): number => {
                          currentStreak++;
                      } else {
                          longestStreak = Math.max(longestStreak, currentStreak);
-                         currentStreak = 1; // Start a new streak
+                         currentStreak = 1;
                      }
                 } else {
                     currentStreak = 1;
@@ -232,6 +230,7 @@ const calculateLongestStreak = (habit: Habit): number => {
 const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { habit: Habit, isOpen: boolean, onClose: () => void, onToggleCompletion: (date: Date) => void }) => {
     if (!isOpen) return null;
 
+    const { toast } = useToast();
     const today = new Date();
     const yearStart = startOfYear(today);
     const completionsInYear = habit.completions.filter(c => getYear(parseISO(c)) === getYear(today));
@@ -248,7 +247,7 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
         const matrix = [];
         let week: (Date | null)[] = [];
 
-        const startDayOfWeek = getDay(firstDay) === 0 ? 6 : getDay(firstDay) - 1; // Mon = 0
+        const startDayOfWeek = getDay(firstDay) === 0 ? 6 : getDay(firstDay) - 1; 
         for (let i = 0; i < startDayOfWeek; i++) {
             week.push(null);
         }
@@ -275,6 +274,17 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
     const months = Array.from({ length: 12 }, (_, i) => i);
     const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+    const handleDayClick = (day: Date) => {
+        if (isFuture(day) && !isToday(day)) {
+             toast({
+                variant: "destructive",
+                title: "Cannot change future dates",
+                description: "You cannot mark a habit for a day in the future. Please check your timezone in your profile if you believe this is a mistake.",
+            });
+            return;
+        }
+        onToggleCompletion(day);
+    }
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -326,15 +336,18 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
                                                  if (!day) return <div key={`empty-${index}`} className="w-5 h-5" />;
                                                  const isCompleted = completionDates.has(format(day, 'yyyy-MM-dd'));
                                                  const isTodayDate = isToday(day);
+                                                 const isFutureDate = isFuture(day) && !isToday(day);
                                                  return (
                                                      <Tooltip key={day.toString()}>
                                                          <TooltipTrigger asChild>
                                                              <button 
                                                                 className={cn("w-5 h-5 rounded-sm transition-colors", 
                                                                     isCompleted ? 'bg-primary hover:bg-primary/80' : 'bg-muted/50 hover:bg-muted',
-                                                                    isTodayDate && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                                                                    isTodayDate && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+                                                                    isFutureDate && "bg-gray-200/50 cursor-not-allowed opacity-50 dark:bg-gray-700/50"
                                                                 )}
-                                                                onClick={() => onToggleCompletion(day)}
+                                                                onClick={() => handleDayClick(day)}
+                                                                disabled={isFutureDate}
                                                               />
                                                          </TooltipTrigger>
                                                          <TooltipContent>
@@ -366,6 +379,8 @@ export default function HabitsPage() {
     const [selectedHabitForReport, setSelectedHabitForReport] = useState<Habit | null>(null);
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
     const [habitDetails, setHabitDetails] = useState<{ title: string; goal: number }>({ title: "", goal: 7 });
+    const { timezone } = useContext(SettingsContext);
+    const { toast } = useToast();
 
     useEffect(() => {
         try {
@@ -519,6 +534,15 @@ export default function HabitsPage() {
         const today = new Date();
         const weekStart = startOfWeek(today, { weekStartsOn: 1 });
         const dateForDayIndex = addDays(weekStart, dayIndex);
+        
+        if (isFuture(dateForDayIndex) && !isToday(dateForDayIndex)) {
+            toast({
+                variant: "destructive",
+                title: "Cannot change future dates",
+                description: "You cannot mark a habit for a day in the future. Please check your timezone in your profile if you believe this is a mistake.",
+            });
+            return;
+        }
         handleToggleCompletionDate(habitId, dateForDayIndex);
       };
 
@@ -541,8 +565,10 @@ export default function HabitsPage() {
           const completedDays = habit.days.filter(Boolean).length;
           const goalLabel = goalOptions.find(g => g.value === habit.goal)?.label || `${habit.goal} times a week`;
           const streakType = habit.goal >= 7 ? 'day' : 'week';
-          const todayIndex = getDay(new Date()) === 0 ? 6 : getDay(new Date()) - 1;
-
+          const today = new Date();
+          const todayIndex = getDay(today) === 0 ? 6 : getDay(today) - 1;
+          const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+          
           return(
           <Card key={habit.id} className="shadow-md flex flex-col">
             <CardHeader>
@@ -599,16 +625,22 @@ export default function HabitsPage() {
               <Progress value={progress} className="h-2" />
             </CardContent>
             <CardFooter className="flex justify-around bg-muted/50 py-3 mt-auto">
-              {dayLabels.map((day, dayIndex) => (
-                <div key={day} className="flex flex-col items-center gap-2">
-                  <label className={cn("text-xs font-medium text-muted-foreground", dayIndex === todayIndex && "text-primary font-bold")}>{day}</label>
-                  <Checkbox 
-                    checked={habit.days[dayIndex]} 
-                    onCheckedChange={() => handleToggleDay(habit.id, dayIndex)}
-                    aria-label={`${habit.title} on ${day}`} 
-                  />
-                </div>
-              ))}
+              {dayLabels.map((day, dayIndex) => {
+                  const dateForDay = addDays(weekStart, dayIndex);
+                  const isFutureDay = isFuture(dateForDay) && !isToday(dateForDay);
+
+                  return (
+                    <div key={day} className="flex flex-col items-center gap-2">
+                      <label className={cn("text-xs font-medium text-muted-foreground", dayIndex === todayIndex && "text-primary font-bold")}>{day}</label>
+                      <Checkbox 
+                        checked={habit.days[dayIndex]} 
+                        onCheckedChange={() => handleToggleDay(habit.id, dayIndex)}
+                        aria-label={`${habit.title} on ${day}`}
+                        disabled={isFutureDay} 
+                      />
+                    </div>
+                  )
+              })}
             </CardFooter>
           </Card>
         )})}
@@ -665,5 +697,3 @@ export default function HabitsPage() {
     </div>
   )
 }
-
-    
