@@ -105,12 +105,12 @@ const calculateStreak = (habit: Habit, isLongest: boolean = false): number => {
         let longestStreak = 0;
         let currentStreak = 0;
 
-        if (sortedDates.length > 0) {
-            const diffFromToday = differenceInCalendarDays(today, sortedDates[0]);
-             if (diffFromToday <= 1) {
-                currentStreak = 1;
-                longestStreak = 1;
-            }
+        const mostRecentCompletion = sortedDates[0];
+        const diffFromToday = differenceInCalendarDays(today, mostRecentCompletion);
+        
+        if (diffFromToday <= 1) {
+            currentStreak = 1;
+            longestStreak = 1;
         }
        
         for (let i = 1; i < sortedDates.length; i++) {
@@ -121,17 +121,19 @@ const calculateStreak = (habit: Habit, isLongest: boolean = false): number => {
             if (diff === 1) {
                 currentStreak++;
             } else {
-                currentStreak = 1; // Reset for a new potential streak
+                 if (isLongest) {
+                    currentStreak = 1; // Reset for a new potential streak if calculating longest
+                } else {
+                     break; // if calculating current, we are done
+                }
             }
             if (currentStreak > longestStreak) {
                 longestStreak = currentStreak;
             }
         }
         
-        const mostRecentCompletion = sortedDates[0];
-        const diffToday = differenceInCalendarDays(today, mostRecentCompletion);
-        if (diffToday > 1) {
-             currentStreak = 0;
+        if (!isLongest && diffFromToday > 1) {
+             return 0;
         }
 
         return isLongest ? longestStreak : currentStreak;
@@ -178,6 +180,9 @@ const calculateStreak = (habit: Habit, isLongest: boolean = false): number => {
                         consecutiveWeeks = 1;
                     }
                 } else {
+                     if (!isLongest) {
+                        break;
+                    }
                     consecutiveWeeks = 0;
                 }
                 
@@ -195,7 +200,7 @@ const calculateStreak = (habit: Habit, isLongest: boolean = false): number => {
     }
 };
 
-const HabitReportDialog = ({ habit, isOpen, onClose }: { habit: Habit, isOpen: boolean, onClose: () => void }) => {
+const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { habit: Habit, isOpen: boolean, onClose: () => void, onToggleCompletion: (date: Date) => void }) => {
     if (!isOpen) return null;
 
     const today = new Date();
@@ -246,6 +251,7 @@ const HabitReportDialog = ({ habit, isOpen, onClose }: { habit: Habit, isOpen: b
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>{habit.title}: Progress Report</DialogTitle>
+                    <DialogDescription>Click on a day in the heatmap to toggle its completion status.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-6 py-4">
                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -285,12 +291,15 @@ const HabitReportDialog = ({ habit, isOpen, onClose }: { habit: Habit, isOpen: b
                                     <div className="grid grid-cols-7 gap-1">
                                         {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => <div key={`${day}-${index}`} className="text-xs text-center text-muted-foreground">{day}</div>)}
                                         {getMonthMatrix(getYear(today), month).flat().map((day, index) => {
-                                             if (!day) return <div key={`empty-${index}`} className="w-4 h-4" />;
+                                             if (!day) return <div key={`empty-${index}`} className="w-5 h-5" />;
                                              const isCompleted = completionDates.has(format(day, 'yyyy-MM-dd'));
                                              return (
                                                  <Tooltip key={day.toString()}>
                                                      <TooltipTrigger asChild>
-                                                         <div className={cn("w-4 h-4 rounded-sm", isCompleted ? 'bg-primary' : 'bg-muted/50')} />
+                                                         <button 
+                                                            className={cn("w-5 h-5 rounded-sm transition-colors", isCompleted ? 'bg-primary hover:bg-primary/80' : 'bg-muted/50 hover:bg-muted')}
+                                                            onClick={() => onToggleCompletion(day)}
+                                                          />
                                                      </TooltipTrigger>
                                                      <TooltipContent>
                                                          <p>{format(day, 'PPP')} - {isCompleted ? "Completed" : "Not Completed"}</p>
@@ -427,39 +436,53 @@ export default function HabitsPage() {
     const handleDeleteHabit = (habitId: number) => {
         setHabits(habits.filter(h => h.id !== habitId));
     };
+    
+    const handleToggleCompletionDate = (habitId: number, date: Date) => {
+        const dateString = format(date, 'yyyy-MM-dd');
+    
+        setHabits(prevHabits => {
+            const newHabits = prevHabits.map(habit => {
+                if (habit.id === habitId) {
+                    const completionExists = habit.completions.includes(dateString);
+                    let newCompletions;
+                    if (completionExists) {
+                        newCompletions = habit.completions.filter(c => c !== dateString);
+                    } else {
+                        newCompletions = [...habit.completions, dateString];
+                    }
+
+                    // Update `days` array for the current week view
+                    const today = new Date();
+                    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+                    const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+                    const newDays = [...habit.days];
+                    if(isWithinInterval(date, { start: weekStart, end: weekEnd })) {
+                        const dayIndex = getDay(date) === 0 ? 6 : getDay(date) - 1;
+                        newDays[dayIndex] = !completionExists;
+                    }
+    
+                    const updatedHabit = { ...habit, completions: newCompletions, days: newDays };
+                    const newStreak = calculateStreak(updatedHabit);
+                    return { ...updatedHabit, currentStreak: newStreak };
+                }
+                return habit;
+            });
+            // Update selectedHabitForReport if it's the one being changed
+            if (selectedHabitForReport?.id === habitId) {
+                const updatedSelectedHabit = newHabits.find(h => h.id === habitId);
+                if (updatedSelectedHabit) {
+                    setSelectedHabitForReport(updatedSelectedHabit);
+                }
+            }
+            return newHabits;
+        });
+    };
 
     const handleToggleDay = (habitId: number, dayIndex: number) => {
         const today = new Date();
         const weekStart = startOfWeek(today, { weekStartsOn: 1 });
-        
         const dateForDayIndex = addDays(weekStart, dayIndex);
-        const dateString = format(dateForDayIndex, 'yyyy-MM-dd');
-    
-        setHabits(habits.map(habit => {
-          if (habit.id === habitId) {
-            const newDays = [...habit.days];
-            newDays[dayIndex] = !newDays[dayIndex];
-            
-            let newCompletions;
-            const completionExists = habit.completions.includes(dateString);
-
-            if (newDays[dayIndex]) { // If checkbox is checked
-                if (!completionExists) {
-                    newCompletions = [...habit.completions, dateString];
-                } else {
-                    newCompletions = habit.completions;
-                }
-            } else { // If checkbox is unchecked
-                newCompletions = habit.completions.filter(c => c !== dateString);
-            }
-
-            const updatedHabit = { ...habit, days: newDays, completions: newCompletions };
-            const newStreak = calculateStreak(updatedHabit);
-            
-            return { ...updatedHabit, currentStreak: newStreak };
-          }
-          return habit;
-        }));
+        handleToggleCompletionDate(habitId, dateForDayIndex);
       };
 
   return (
@@ -599,6 +622,7 @@ export default function HabitsPage() {
                 habit={selectedHabitForReport}
                 isOpen={isReportOpen}
                 onClose={handleCloseReport}
+                onToggleCompletion={(date) => handleToggleCompletionDate(selectedHabitForReport.id, date)}
             />
         )}
     </div>
