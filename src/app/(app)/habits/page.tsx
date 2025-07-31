@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO, startOfToday, startOfDay, differenceInCalendarDays } from 'date-fns';
+import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO, startOfToday, differenceInCalendarDays } from 'date-fns';
 
 
 type Habit = {
@@ -118,7 +118,36 @@ const calculateStreak = (habit: Habit): number => {
                 break; // Not consecutive
             }
         }
-        return streak;
+        
+        // If the most recent completion was yesterday, and they also completed today, streak should be accurate
+        // If most recent was yesterday, and they haven't completed today, streak is what it is.
+        // If most recent is today, streak is accurate.
+        
+        // The current logic seems correct for daily streaks as it is, but let's re-verify the logic from top to bottom
+        const uniqueSortedDates = [...new Set(completions)].map(c => parseISO(c)).sort((a, b) => b.getTime() - a.getTime());
+        if (uniqueSortedDates.length === 0) return 0;
+
+        const mostRecentDate = uniqueSortedDates[0];
+        
+        const dayDiff = differenceInCalendarDays(today, mostRecentDate);
+
+        if (dayDiff > 1) {
+            return 0; // Streak is broken
+        }
+
+        let currentStreak = 1;
+        for (let i = 1; i < uniqueSortedDates.length; i++) {
+            const d1 = uniqueSortedDates[i - 1];
+            const d2 = uniqueSortedDates[i];
+            if (differenceInCalendarDays(d1, d2) === 1) {
+                currentStreak++;
+            } else {
+                break;
+            }
+        }
+
+        return currentStreak;
+
     } else { // Weekly streak logic
         let currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
         
@@ -128,7 +157,7 @@ const calculateStreak = (habit: Habit): number => {
 
         // If goal for this week isn't met yet, start checking from last week
         if (completionsInCurrentWeek < goal) {
-             currentWeekStart = startOfWeek(subDays(currentWeekStart, 7), { weekStartsOn: 1 });
+             currentWeekStart = startOfWeek(subDays(today, 7), { weekStartsOn: 1 });
         }
         
         let streak = 0;
@@ -168,9 +197,6 @@ export default function HabitsPage() {
                 const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
 
                 const migratedHabits = parsedHabits.map((h: any) => {
-                    const lastCompletionDate = h.completions && h.completions.length > 0
-                        ? new Date(Math.max.apply(null, h.completions.map((c: string) => new Date(c).getTime())))
-                        : new Date(0);
                     
                     const completionsForCurrentWeek = (h.completions || []).filter((c: string) => {
                         return isWithinInterval(parseISO(c), { start: weekStart, end: weekEnd })
@@ -274,11 +300,11 @@ export default function HabitsPage() {
             let newCompletions = [...habit.completions];
             
             if (newDays[dayIndex]) {
-              if (!newCompletions.includes(dateString)) {
-                newCompletions.push(dateString);
+              if (!newCompletions.some(c => c.startsWith(dateString))) {
+                newCompletions.push(format(dateForDayIndex, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"));
               }
             } else {
-              newCompletions = newCompletions.filter(c => c !== dateString);
+              newCompletions = newCompletions.filter(c => !c.startsWith(dateString));
             }
 
             const updatedHabit = { ...habit, days: newDays, completions: newCompletions };
