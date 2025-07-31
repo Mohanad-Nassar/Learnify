@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO, startOfToday, differenceInCalendarDays, addDays, getYear, getMonth, getDate, endOfYear, startOfYear, isSameMonth, getDay, subWeeks } from 'date-fns';
+import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays, parseISO, startOfToday, differenceInCalendarDays, addDays, getYear, getMonth, getDate, endOfYear, startOfYear, isSameMonth, getDay, subWeeks, isToday } from 'date-fns';
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -96,50 +96,13 @@ const calculateProgress = (days: boolean[], goal: number) => {
 
 const calculateStreak = (habit: Habit): number => {
     const { completions, goal } = habit;
-    const completionDates = new Set(completions);
+    const completionDates = new Set(completions.map(c => format(parseISO(c), 'yyyy-MM-dd')));
     const sortedDates = [...new Set(completions)].map(c => parseISO(c)).sort((a, b) => b.getTime() - a.getTime());
 
     if (sortedDates.length === 0) return 0;
     const today = startOfToday();
 
     if (goal >= 7) { // Daily streak logic
-        let currentStreak = 0;
-        let dayToCheck = today;
-
-        if (completionDates.has(format(dayToCheck, 'yyyy-MM-dd'))) {
-            currentStreak++;
-            dayToCheck = subDays(dayToCheck, 1);
-        } else {
-            // if today is not complete, the streak might have ended yesterday
-            dayToCheck = subDays(today, 1);
-        }
-        
-        while (completionDates.has(format(dayToCheck, 'yyyy-MM-dd'))) {
-            currentStreak++;
-            const prevDay = subDays(dayToCheck, 1);
-            if (differenceInCalendarDays(dayToCheck, prevDay) > 1) {
-                break;
-            }
-            dayToCheck = prevDay;
-        }
-
-        // if today is not complete, the streak is 0
-        if (!completionDates.has(format(today, 'yyyy-MM-dd'))) {
-             if (!completionDates.has(format(subDays(today,1), 'yyyy-MM-dd'))) return 0;
-        }
-
-        let finalStreak = 0;
-        let yesterday = subDays(today, 1);
-        if(completionDates.has(format(today, 'yyyy-MM-dd'))) finalStreak++;
-        else if (completionDates.has(format(yesterday, 'yyyy-MM-dd'))) finalStreak = 1;
-        else return 0;
-        
-        dayToCheck = subDays(today, 1);
-        if(!completionDates.has(format(today, 'yyyy-MM-dd'))) dayToCheck = subDays(today, 1);
-
-
-        let consecutive = true;
-        let idx = 0;
         const compDates = Array.from(completionDates).map(d => parseISO(d)).sort((a,b) => b.getTime() - a.getTime());
 
         if (compDates.length === 0) return 0;
@@ -161,7 +124,7 @@ const calculateStreak = (habit: Habit): number => {
              if (format(date, 'yyyy-MM-dd') === format(expectedDate, 'yyyy-MM-dd')) {
                 streak++;
                 expectedDate = subDays(expectedDate, 1);
-            } else if (format(date, 'yyyy-MM-dd') === format(subDays(expectedDate,1), 'yyyy-MM-dd')) {
+            } else if (format(date, 'yyyy-MM-dd') < format(expectedDate, 'yyyy-MM-dd') && differenceInCalendarDays(expectedDate, date) > 1) {
                  // this means a day was skipped
                  break;
             }
@@ -243,17 +206,17 @@ const calculateLongestStreak = (habit: Habit): number => {
         for(let i=0; i<sortedWeekKeys.length; i++) {
             const weekKey = sortedWeekKeys[i];
             if(completionsByWeek[weekKey] >= goal) {
-                if (currentStreak === 0) {
-                    currentStreak = 1;
-                } else {
+                if (i > 0) {
                      const prevWeekKey = sortedWeekKeys[i-1];
-                     const diff = differenceInCalendarDays(parseISO(weekKey), parseISO(prevWeekKey));
-                     if(diff === 7) {
+                     const diffInDays = differenceInCalendarDays(parseISO(weekKey), parseISO(prevWeekKey));
+                     if(diffInDays === 7) {
                          currentStreak++;
                      } else {
                          longestStreak = Math.max(longestStreak, currentStreak);
                          currentStreak = 1; // Start a new streak
                      }
+                } else {
+                    currentStreak = 1;
                 }
             } else {
                 longestStreak = Math.max(longestStreak, currentStreak);
@@ -320,7 +283,7 @@ const HabitReportDialog = ({ habit, isOpen, onClose, onToggleCompletion }: { hab
                     <DialogTitle>{habit.title}: Progress Report</DialogTitle>
                     <DialogDescription>Click on a day in the heatmap to toggle its completion status.</DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
+                 <div className="space-y-4">
                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                         <Card>
                             <CardHeader className="p-4">
