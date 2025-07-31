@@ -6,19 +6,23 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
-import { Target, PlusCircle, Repeat, BookOpen, Dumbbell, Edit, Trash2 } from "lucide-react"
+import { Target, PlusCircle, Repeat, BookOpen, Dumbbell, Edit, Trash2, Flame } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { isSameDay, startOfWeek, endOfWeek, eachDayOfInterval, format, isWithinInterval, subDays } from 'date-fns';
+
 
 type Habit = {
   id: number;
   title: string;
-  iconName: string; // Store icon name instead of component
+  iconName: string; 
   goal: number; // Target completions per week
-  days: boolean[];
+  days: boolean[]; // Represents Mon-Sun for the CURRENT week
+  completions: string[]; // Stores ISO date strings of all completions
+  currentStreak: number;
 };
 
 const goalOptions: { label: string, value: number }[] = [
@@ -46,6 +50,8 @@ const initialHabits: Habit[] = [
     iconName: "BookOpen",
     goal: 7,
     days: [true, true, true, true, false, true, false],
+    completions: [],
+    currentStreak: 0,
   },
   {
     id: 2,
@@ -53,6 +59,8 @@ const initialHabits: Habit[] = [
     iconName: "Dumbbell",
     goal: 5,
     days: [true, false, true, true, false, true, true],
+    completions: [],
+    currentStreak: 0,
   },
   {
     id: 3,
@@ -60,6 +68,8 @@ const initialHabits: Habit[] = [
     iconName: "Repeat",
     goal: 7,
     days: [true, false, true, false, true, false, false],
+    completions: [],
+    currentStreak: 0,
   },
   {
     id: 4,
@@ -67,6 +77,8 @@ const initialHabits: Habit[] = [
     iconName: "Target",
     goal: 3,
     days: [false, true, false, false, true, false, false],
+    completions: [],
+    currentStreak: 0,
   },
 ];
 
@@ -74,9 +86,55 @@ const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const calculateProgress = (days: boolean[], goal: number) => {
     const completedDays = days.filter(Boolean).length;
-    if (goal <= 0) return 0; // Prevent division by zero
+    if (goal <= 0) return 0;
     return Math.min(Math.round((completedDays / goal) * 100), 100);
 }
+
+const calculateStreak = (habit: Habit): number => {
+    const { completions, goal } = habit;
+    const sortedCompletions = completions.map(c => new Date(c)).sort((a, b) => b.getTime() - a.getTime());
+
+    if (sortedCompletions.length === 0) return 0;
+
+    if (goal === 7) { // Daily streak
+        let streak = 0;
+        let today = new Date();
+        if (!isSameDay(today, sortedCompletions[0])) { // if not completed today
+            today = subDays(today, 1); // check from yesterday
+        }
+        
+        for (let i = 0; i < sortedCompletions.length; i++) {
+            const completionDate = sortedCompletions[i];
+            if (isSameDay(today, completionDate)) {
+                streak++;
+                today = subDays(today, 1);
+            } else {
+                break;
+            }
+        }
+        return streak;
+    } else { // Weekly streak
+        let streak = 0;
+        let currentWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
+        
+        while (true) {
+            const weekStart = currentWeek;
+            const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
+
+            const completionsInWeek = sortedCompletions.filter(d => 
+                isWithinInterval(d, { start: weekStart, end: weekEnd })
+            ).length;
+
+            if (completionsInWeek >= goal) {
+                streak++;
+                currentWeek = startOfWeek(subDays(currentWeek, 1), { weekStartsOn: 1 });
+            } else {
+                break;
+            }
+        }
+        return streak;
+    }
+};
 
 
 export default function HabitsPage() {
@@ -89,7 +147,14 @@ export default function HabitsPage() {
         try {
             const storedHabits = localStorage.getItem('learnify-habits');
             if (storedHabits) {
-                setHabits(JSON.parse(storedHabits));
+                const parsedHabits = JSON.parse(storedHabits);
+                // Simple migration for users who used the app before streaks
+                const migratedHabits = parsedHabits.map((h: any) => ({
+                    ...h,
+                    completions: h.completions || [],
+                    currentStreak: h.currentStreak || 0,
+                }));
+                setHabits(migratedHabits);
             } else {
                 setHabits(initialHabits);
             }
@@ -138,6 +203,8 @@ export default function HabitsPage() {
                 goal: habitDetails.goal,
                 iconName: 'Target', // Default icon for new habits
                 days: Array(7).fill(false),
+                completions: [],
+                currentStreak: 0,
             };
             setHabits([...habits, newHabit]);
         }
@@ -149,15 +216,39 @@ export default function HabitsPage() {
     };
 
     const handleToggleDay = (habitId: number, dayIndex: number) => {
+        const today = new Date();
+        const weekDates = eachDayOfInterval({
+          start: startOfWeek(today, { weekStartsOn: 1 }),
+          end: endOfWeek(today, { weekStartsOn: 1 }),
+        });
+        const dateForDayIndex = weekDates[dayIndex];
+    
         setHabits(habits.map(habit => {
-            if (habit.id === habitId) {
-                const newDays = [...habit.days];
-                newDays[dayIndex] = !newDays[dayIndex];
-                return { ...habit, days: newDays };
+          if (habit.id === habitId) {
+            const newDays = [...habit.days];
+            newDays[dayIndex] = !newDays[dayIndex];
+            
+            let newCompletions = [...habit.completions];
+            const dateISO = dateForDayIndex.toISOString().split('T')[0];
+    
+            if (newDays[dayIndex]) {
+              // Add to completions if it's not already there
+              if (!newCompletions.some(c => c.startsWith(dateISO))) {
+                newCompletions.push(dateForDayIndex.toISOString());
+              }
+            } else {
+              // Remove from completions
+              newCompletions = newCompletions.filter(c => !c.startsWith(dateISO));
             }
-            return habit;
+
+            const updatedHabit = { ...habit, days: newDays, completions: newCompletions };
+            const newStreak = calculateStreak(updatedHabit);
+
+            return { ...updatedHabit, currentStreak: newStreak };
+          }
+          return habit;
         }));
-    };
+      };
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -177,9 +268,11 @@ export default function HabitsPage() {
           const progress = calculateProgress(habit.days, habit.goal);
           const completedDays = habit.days.filter(Boolean).length;
           const goalLabel = goalOptions.find(g => g.value === habit.goal)?.label || `${habit.goal} times a week`;
+          const streakType = habit.goal === 7 ? 'day' : 'week';
+
 
           return(
-          <Card key={habit.id} className="shadow-md">
+          <Card key={habit.id} className="shadow-md flex flex-col">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div>
@@ -215,7 +308,13 @@ export default function HabitsPage() {
                  </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-grow">
+              {habit.currentStreak > 0 && (
+                <div className="flex items-center justify-center gap-2 text-sm text-amber-500 mb-3 font-medium">
+                    <Flame className="h-4 w-4" />
+                    <span>{habit.currentStreak} {streakType} streak</span>
+                </div>
+              )}
               <div className="flex justify-between items-center mb-2">
                 <p className="text-sm font-medium">
                     {completedDays} / {habit.goal} times
@@ -224,7 +323,7 @@ export default function HabitsPage() {
               </div>
               <Progress value={progress} className="h-2" />
             </CardContent>
-            <CardFooter className="flex justify-around bg-muted/50 py-3">
+            <CardFooter className="flex justify-around bg-muted/50 py-3 mt-auto">
               {dayLabels.map((day, dayIndex) => (
                 <div key={day} className="flex flex-col items-center gap-2">
                   <label className="text-xs font-medium text-muted-foreground">{day}</label>
@@ -281,5 +380,4 @@ export default function HabitsPage() {
         </Dialog>
     </div>
   )
-
-    
+}
