@@ -27,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubjectContext } from '@/context/SubjectContext';
-import { format, isToday, parseISO } from 'date-fns';
+import { format, isToday, parseISO, startOfToday, subDays, isWithinInterval, startOfWeek, endOfWeek, subWeeks } from 'date-fns';
 
 type Task = {
   id: number;
@@ -44,6 +44,7 @@ type Habit = {
   iconName: string; 
   goal: number; 
   days: boolean[];
+  completions: string[];
 };
 
 const calculateHabitProgress = (days: boolean[], goal: number) => {
@@ -51,6 +52,63 @@ const calculateHabitProgress = (days: boolean[], goal: number) => {
     if (goal <= 0) return 0;
     return Math.min(Math.round((completedDays / goal) * 100), 100);
 }
+
+const calculateStreak = (habit: Habit): number => {
+    const { completions, goal } = habit;
+    if (!completions) return 0;
+    
+    const completionDates = new Set(completions);
+    const sortedDates = [...new Set(completions)].map(c => parseISO(c)).sort((a, b) => b.getTime() - a.getTime());
+
+    if (sortedDates.length === 0) return 0;
+    const today = startOfToday();
+
+    if (goal === 7) { // Daily streak logic
+        let currentStreak = 0;
+        let dayToCheck = today;
+        
+        // If today is not completed, check from yesterday
+        if(!completionDates.has(format(today, 'yyyy-MM-dd'))) {
+            dayToCheck = subDays(today, 1);
+        }
+
+        while(completionDates.has(format(dayToCheck, 'yyyy-MM-dd'))) {
+            currentStreak++;
+            dayToCheck = subDays(dayToCheck, 1);
+        }
+        return currentStreak;
+    } else { // Weekly streak logic
+        const weekOptions = { weekStartsOn: 1 as const };
+        let currentWeekStart = startOfWeek(today, weekOptions);
+        
+        const completionsInCurrentWeek = sortedDates.filter(d => 
+            isWithinInterval(d, { start: currentWeekStart, end: endOfWeek(currentWeekStart, weekOptions) })
+        ).length;
+
+        // If current week's goal isn't met, the streak calculation should start from the previous week.
+        if (completionsInCurrentWeek < goal) {
+             currentWeekStart = subWeeks(currentWeekStart, 1);
+        }
+        
+        let weeklyStreak = 0;
+        while (true) {
+            const weekStart = currentWeekStart;
+            const weekEnd = endOfWeek(weekStart, weekOptions);
+
+            const completionsInWeek = sortedDates.filter(d => 
+                isWithinInterval(d, { start: weekStart, end: weekEnd })
+            ).length;
+
+            if (completionsInWeek >= goal) {
+                weeklyStreak++;
+                currentWeekStart = subWeeks(weekStart, 1);
+            } else {
+                break; // End of streak
+            }
+        }
+        return weeklyStreak;
+    }
+};
 
 
 export default function DashboardPage() {
@@ -132,6 +190,10 @@ export default function DashboardPage() {
     .filter(task => !task.isCompleted)
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 5);
+    
+  const maxStreak = habits.length > 0
+    ? Math.max(...habits.map(habit => calculateStreak(habit)))
+    : 0;
 
 
   return (
@@ -148,8 +210,8 @@ export default function DashboardPage() {
             <Flame className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold">12 days</div>
-            <p className="text-xs text-muted-foreground">Keep up the great work!</p>
+            <div className="text-4xl font-bold">{maxStreak} days</div>
+            <p className="text-xs text-muted-foreground">Your longest active streak.</p>
           </CardContent>
         </Card>
 
@@ -301,6 +363,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-
-    
