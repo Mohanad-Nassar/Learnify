@@ -7,8 +7,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { Target, PlusCircle, Repeat, BookOpen, Dumbbell, Edit, Trash2, Flame, BarChartHorizontal } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription as AlertDialogDescriptionComponent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -102,17 +102,20 @@ const calculateStreak = (habit: Habit, isLongest: boolean = false): number => {
     const today = startOfToday();
 
     if (goal === 7) { // Daily streak logic
+        const mostRecentCompletion = sortedDates[0];
+        const diffFromToday = differenceInCalendarDays(today, mostRecentCompletion);
+
+        if (!isLongest && diffFromToday > 1) {
+            return 0; // Current streak is broken if last completion was more than a day ago
+        }
+
         let longestStreak = 0;
         let currentStreak = 0;
 
-        const mostRecentCompletion = sortedDates[0];
-        const diffFromToday = differenceInCalendarDays(today, mostRecentCompletion);
-        
-        if (diffFromToday <= 1) {
+        if (diffFromToday <= 1) { // Only start a streak if it's today or yesterday
             currentStreak = 1;
-            longestStreak = 1;
         }
-       
+
         for (let i = 1; i < sortedDates.length; i++) {
             const date1 = sortedDates[i - 1];
             const date2 = sortedDates[i];
@@ -121,22 +124,41 @@ const calculateStreak = (habit: Habit, isLongest: boolean = false): number => {
             if (diff === 1) {
                 currentStreak++;
             } else {
-                 if (isLongest) {
-                    currentStreak = 1; // Reset for a new potential streak if calculating longest
+                if (isLongest) {
+                    if (currentStreak > longestStreak) {
+                        longestStreak = currentStreak;
+                    }
+                    currentStreak = 1; // Start a new potential streak
                 } else {
-                     break; // if calculating current, we are done
+                    break; // If not calculating longest, break at the first gap
                 }
             }
-            if (currentStreak > longestStreak) {
-                longestStreak = currentStreak;
-            }
         }
-        
-        if (!isLongest && diffFromToday > 1) {
-             return 0;
+        if (currentStreak > longestStreak) {
+            longestStreak = currentStreak;
         }
 
-        return isLongest ? longestStreak : currentStreak;
+        // Final check for current streak
+        if (!isLongest) {
+            // Recalculate just the current streak without resetting for longest
+             let current = 0;
+             if (diffFromToday <= 1) {
+                 current = 1;
+                 for (let i = 1; i < sortedDates.length; i++) {
+                    const date1 = sortedDates[i - 1];
+                    const date2 = sortedDates[i];
+                    if (differenceInCalendarDays(date1, date2) === 1) {
+                        current++;
+                    } else {
+                        break;
+                    }
+                }
+             }
+             return current;
+        }
+
+
+        return longestStreak;
 
     } else { // Weekly streak logic
         const completionsByWeek: Record<string, number> = sortedDates.reduce((acc, date) => {
@@ -149,50 +171,40 @@ const calculateStreak = (habit: Habit, isLongest: boolean = false): number => {
         
         let longestStreak = 0;
         let currentStreak = 0;
-        
-        if (sortedWeekKeys.length > 0) {
-            const mostRecentWeekStart = parseISO(sortedWeekKeys[0]);
-            const todayWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-            const lastWeekStart = startOfWeek(subDays(today, 7), { weekStartsOn: 1 });
 
-            const isMostRecentThisWeek = isSameDay(mostRecentWeekStart, todayWeekStart);
-            const isMostRecentLastWeek = isSameDay(mostRecentWeekStart, lastWeekStart);
-           
-            if ((isMostRecentThisWeek && completionsByWeek[sortedWeekKeys[0]] >= goal) || isMostRecentLastWeek) {
-                 // Streak is potentially active
-            } else {
-                currentStreak = 0; // Streak is broken
-            }
+        const currentWeekStartKey = format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        const lastWeekStartKey = format(startOfWeek(subDays(today, 7), { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
-            let consecutiveWeeks = 0;
-            for (let i = 0; i < sortedWeekKeys.length; i++) {
-                const weekKey = sortedWeekKeys[i];
-                if (completionsByWeek[weekKey] >= goal) {
-                    if (i > 0) {
-                        const prevWeekKey = sortedWeekKeys[i-1];
-                        const diff = differenceInCalendarDays(parseISO(prevWeekKey), parseISO(weekKey));
-                        if(diff === 7) {
-                           consecutiveWeeks++;
-                        } else {
-                           consecutiveWeeks = 1;
-                        }
+        let consecutiveWeeks = 0;
+        for (let i = 0; i < sortedWeekKeys.length; i++) {
+            const weekKey = sortedWeekKeys[i];
+            if (completionsByWeek[weekKey] >= goal) {
+                if (i > 0) {
+                    const prevWeekKey = sortedWeekKeys[i-1];
+                    const diff = differenceInCalendarDays(parseISO(prevWeekKey), parseISO(weekKey));
+                    if(diff === 7) {
+                        consecutiveWeeks++;
                     } else {
-                        consecutiveWeeks = 1;
+                        if (consecutiveWeeks > longestStreak) longestStreak = consecutiveWeeks;
+                        consecutiveWeeks = 1; // Start new streak
                     }
                 } else {
-                     if (!isLongest) {
-                        break;
-                    }
-                    consecutiveWeeks = 0;
+                    consecutiveWeeks = 1;
                 }
-                
-                if (i === 0) {
-                    currentStreak = consecutiveWeeks;
-                }
+            } else {
+                 if (consecutiveWeeks > longestStreak) longestStreak = consecutiveWeeks;
+                 consecutiveWeeks = 0;
+            }
 
-                if (consecutiveWeeks > longestStreak) {
-                    longestStreak = consecutiveWeeks;
+            if(consecutiveWeeks > longestStreak) longestStreak = consecutiveWeeks;
+
+            if(!isLongest && i === 0){ // Current streak calculation
+                if(weekKey === currentWeekStartKey || weekKey === lastWeekStartKey) {
+                    // streak is active
+                } else {
+                     consecutiveWeeks = 0; // streak is broken
                 }
+                currentStreak = consecutiveWeeks;
             }
         }
         
@@ -336,10 +348,10 @@ export default function HabitsPage() {
             if (storedHabits) {
                 const parsedHabits = JSON.parse(storedHabits);
                 const today = new Date();
-                const weekStart = startOfWeek(today, { weekStartsOn: 1 });
-                const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
-
+                
                 const migratedHabits = parsedHabits.map((h: any) => {
+                    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+                    const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
                     
                     const completionsForCurrentWeek = (h.completions || []).filter((c: string) => {
                         const completionDate = parseISO(c);
@@ -533,9 +545,9 @@ export default function HabitsPage() {
                         <AlertDialogContent>
                             <AlertDialogHeader>
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
+                            <AlertDialogDescriptionComponent>
                                 This action cannot be undone. This will permanently delete your habit.
-                            </AlertDialogDescription>
+                            </AlertDialogDescriptionComponent>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
